@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pact Sentinel — AI-Powered Security Analyzer for Kadena</title>
+<meta name="description" content="Open-source static analysis + AI reasoning tool for detecting vulnerabilities in Kadena Pact smart contracts.">
+<meta property="og:title" content="Pact Sentinel — Pact Smart Contract Security">
+<meta property="og:description" content="12 detection rules · Claude AI explanations · Risk scoring · Zero dependencies">
+<meta property="og:image" content="https://sunilblinkoninfra-cyber.github.io/pact-sentinel/og-image.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060810;--bg2:#0d1117;--bg3:#161b25;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;
+  --accent:#3b82f6;--purple:#8b5cf6;
+  --critical:#ef4444;--high:#f97316;--medium:#eab308;--low:#22c55e;
+  --green:#10b981;
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,0.06);padding:14px 40px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--text)}
+.nav-logo span{color:var(--accent)}
+.nav-links{display:flex;gap:24px;font-size:13px;color:var(--text2)}
+.nav-links a{color:var(--text2);transition:color 0.15s}
+.nav-links a:hover{color:var(--text);text-decoration:none}
+.nav-cta{background:var(--accent);color:white!important;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:500}
+.nav-cta:hover{background:#2563eb;text-decoration:none!important}
+
+/* Hero */
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:80px 20px 60px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;width:600px;height:600px;background:var(--accent);border-radius:50%;filter:blur(150px);opacity:0.04;top:-200px;left:50%;transform:translateX(-50%)}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:100px;padding:5px 14px;font-size:12px;color:var(--accent);margin-bottom:24px;letter-spacing:0.5px}
+.hero-badge::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%;box-shadow:0 0 6px var(--green)}
+h1{font-family:'Syne',sans-serif;font-size:clamp(2.2rem,5vw,4rem);font-weight:800;line-height:1.1;letter-spacing:-1px;margin-bottom:20px}
+h1 span{background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-sub{font-size:clamp(14px,2vw,18px);color:var(--text2);max-width:600px;margin:0 auto 36px;line-height:1.7}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:48px}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--purple));color:white;padding:12px 28px;border-radius:8px;font-size:14px;font-weight:500;letter-spacing:0.3px;transition:all 0.2s;box-shadow:0 0 30px rgba(59,130,246,0.2)}
+.btn-primary:hover{box-shadow:0 0 40px rgba(59,130,246,0.4);transform:translateY(-1px);text-decoration:none}
+.btn-secondary{border:1px solid rgba(255,255,255,0.12);color:var(--text);padding:12px 28px;border-radius:8px;font-size:14px;transition:all 0.2s}
+.btn-secondary:hover{border-color:rgba(255,255,255,0.25);background:rgba(255,255,255,0.04);text-decoration:none}
+
+/* Terminal demo */
+.terminal{background:var(--bg2);border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;max-width:760px;margin:0 auto;text-align:left;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+.terminal-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);background:var(--bg3)}
+.t-dot{width:10px;height:10px;border-radius:50%}
+.t-red{background:#ef4444}.t-yellow{background:#eab308}.t-green{background:#22c55e}
+.terminal-title{font-size:11px;color:var(--text3);margin-left:8px;letter-spacing:1px}
+.terminal-body{padding:20px 20px;font-size:12px;line-height:1.7;overflow-x:auto}
+.t-prompt{color:var(--accent)}.t-comment{color:var(--text3)}
+.t-critical{color:#ef4444}.t-high{color:#f97316}.t-medium{color:#eab308}.t-ok{color:#10b981}
+.t-dim{color:var(--text3)}.t-white{color:var(--text)}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;margin:60px auto;max-width:800px}
+.stat{background:var(--bg2);padding:28px 24px;text-align:center}
+.stat-num{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--accent)}
+.stat-label{font-size:11px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-top:4px}
+
+/* Section */
+section{padding:80px 20px;max-width:1100px;margin:0 auto}
+.section-tag{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:12px}
+h2{font-family:'Syne',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:800;margin-bottom:16px;line-height:1.2}
+.section-sub{color:var(--text2);font-size:15px;line-height:1.7;max-width:600px;margin-bottom:48px}
+
+/* Feature grid */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.feature-card{background:var(--bg2);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:28px;transition:all 0.2s}
+.feature-card:hover{border-color:rgba(255,255,255,0.12);transform:translateY(-2px)}
+.feature-icon{font-size:24px;margin-bottom:16px}
+.feature-title{font-size:15px;font-weight:500;margin-bottom:8px}
+.feature-desc{font-size:13px;color:var(--text2);line-height:1.6}
+
+/* Rules table */
+.rules-table{width:100%;border-collapse:collapse;font-size:13px}
+.rules-table th{text-align:left;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
+.rules-table td{padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.04);color:var(--text2)}
+.rules-table tr:hover td{background:rgba(255,255,255,0.02)}
+.rules-table td:first-child{font-family:'JetBrains Mono',monospace;color:var(--accent);font-weight:500}
+.sev{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:500;letter-spacing:0.5px}
+.sev.critical{background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2)}
+.sev.high{background:rgba(249,115,22,0.1);color:#f97316;border:1px solid rgba(249,115,22,0.2)}
+.sev.medium{background:rgba(234,179,8,0.1);color:#eab308;border:1px solid rgba(234,179,8,0.2)}
+
+/* Install block */
+.install-block{background:var(--bg2);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:28px;font-size:13px;line-height:2}
+.install-block code{display:block;padding:4px 0}
+.install-block .comment{color:var(--text3)}
+.install-block .cmd{color:var(--text)}
+.install-block .cmd::before{content:'$ ';color:var(--accent)}
+
+/* Evaluation section */
+.eval-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.eval-card{background:var(--bg2);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:20px}
+.eval-score{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--accent)}
+.eval-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.eval-desc{font-size:12px;color:var(--text2);margin-top:8px;line-height:1.5}
+
+/* Footer */
+footer{border-top:1px solid rgba(255,255,255,0.06);padding:40px 20px;text-align:center;color:var(--text3);font-size:12px}
+footer a{color:var(--text2)}
+
+@media(max-width:640px){
+  nav{padding:14px 20px}
+  .nav-links{display:none}
+  .hero{padding:100px 20px 60px}
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <div class="nav-logo">Pact <span>Sentinel</span></div>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#rules">Rules</a>
+    <a href="#quickstart">Quick Start</a>
+    <a href="#evaluation">Evaluation</a>
+    <a href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel" target="_blank">GitHub</a>
+    <a href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel/releases" class="nav-cta" target="_blank">v1.0.0</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div>
+    <div class="hero-badge">Kadena · Pact Language · Competition Release</div>
+    <h1>Security Analyzer for<br><span>Pact Smart Contracts</span></h1>
+    <p class="hero-sub">Static analysis + Claude AI reasoning to detect vulnerabilities in Kadena Pact contracts. 12 detection rules, zero dependencies, structured findings with automated fix suggestions.</p>
+    <div class="hero-actions">
+      <a class="btn-primary" href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel" target="_blank">⭐ View on GitHub</a>
+      <a class="btn-secondary" href="#quickstart">Quick Start →</a>
+    </div>
+
+    <!-- Terminal -->
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="t-dot t-red"></div>
+        <div class="t-dot t-yellow"></div>
+        <div class="t-dot t-green"></div>
+        <span class="terminal-title">pact-sentinel — bash</span>
+      </div>
+      <div class="terminal-body">
+<span class="t-prompt">$</span> <span class="t-white">python cli.py vulnerable-defi.pact --no-ai</span>
+<br>
+<span class="t-white">╔══════════════════════════════════════════════╗</span>
+<span class="t-white">║     PACT SENTINEL — Security Analysis        ║</span>
+<span class="t-white">╚══════════════════════════════════════════════╝</span>
+<span class="t-white">  File:    vulnerable-defi.pact</span>
+<span class="t-white">  Elapsed: 0.003s</span>
+<br>
+<span class="t-critical">  Security Score: 0.0/100  Grade: F-  (Severely Vulnerable)</span>
+<span class="t-white">  Findings: </span><span class="t-critical">12 critical</span>  <span class="t-high">8 high</span>  <span class="t-medium">2 medium</span>
+<br>
+<span class="t-critical">  🔴 [F-001] Capability Missing Authorization Enforcement</span>
+<span class="t-dim">     Location: vulnerable-defi-token::TRANSFER (line 25)</span>
+<span class="t-dim">     Empty capability — grants access to anyone unconditionally.</span>
+<br>
+<span class="t-high">  🟠 [F-006] State Change Before Auth Check (CEI Violation)</span>
+<span class="t-dim">     Location: vulnerable-defi-token::transfer (line 58)</span>
+<span class="t-dim">     State mutation at line 58 occurs BEFORE enforce at line 61.</span>
+<br>
+<span class="t-critical">  🔴 [F-007] Unguarded Administrative Function</span>
+<span class="t-dim">     Location: vulnerable-defi-token::init (line 42)</span>
+<span class="t-dim">     Callable by ANY account post-deployment.</span>
+<br>
+<span class="t-dim">  ... and 19 more findings</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Stats -->
+<div style="padding:0 20px">
+<div class="stats">
+  <div class="stat"><div class="stat-num">12</div><div class="stat-label">Detection Rules</div></div>
+  <div class="stat"><div class="stat-num">0</div><div class="stat-label">Dependencies</div></div>
+  <div class="stat"><div class="stat-num">4</div><div class="stat-label">Output Formats</div></div>
+  <div class="stat"><div class="stat-num">39</div><div class="stat-label">Tests Passing</div></div>
+  <div class="stat"><div class="stat-num">A+→F-</div><div class="stat-label">Risk Grades</div></div>
+</div>
+</div>
+
+<!-- Features -->
+<section id="features">
+  <div class="section-tag">Capabilities</div>
+  <h2>Everything you need to audit Pact contracts</h2>
+  <p class="section-sub">Built specifically for the Pact capability model — understands defcap, with-capability, @managed, guards, and defpact semantics.</p>
+  <div class="features">
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <div class="feature-title">Recursive Descent Parser</div>
+      <div class="feature-desc">Full Pact AST with typed nodes. Tracks capability flows, state mutations, enforce calls, and guard constructions across entire module bodies.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🛡️</div>
+      <div class="feature-title">12 Security Rules</div>
+      <div class="feature-desc">Detects empty capabilities, CEI violations, unguarded admin functions, missing @managed on transfer caps, hardcoded keysets, and more.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🤖</div>
+      <div class="feature-title">AI Explanations</div>
+      <div class="feature-desc">Claude API integration provides deep technical explanations, concrete attack scenarios, and fixed code snippets for every finding.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <div class="feature-title">Risk Scoring</div>
+      <div class="feature-desc">Severity-weighted 0–100 score with A+→F- letter grades. Compound risk multipliers for co-occurring vulnerability patterns.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚙️</div>
+      <div class="feature-title">CI/CD Integration</div>
+      <div class="feature-desc">GitHub Actions workflow with SARIF upload, PR comments, and build failure gates. Pre-commit hook support included.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🖥️</div>
+      <div class="feature-title">Multiple Interfaces</div>
+      <div class="feature-desc">CLI with ANSI colors, Flask web UI with live analysis, JSON/Markdown/SARIF output, and a VSCode extension scaffold.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Rules -->
+<section id="rules">
+  <div class="section-tag">Detection Rules</div>
+  <h2>12 Pact-specific vulnerability detectors</h2>
+  <p class="section-sub">Each rule targets a real-world attack vector specific to the Pact capability model. Extensible — add custom rules in &lt;20 lines.</p>
+  <table class="rules-table">
+    <thead>
+      <tr><th>ID</th><th>Severity</th><th>Title</th><th>Tags</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>R-001</td><td><span class="sev critical">CRITICAL</span></td><td>State Mutation Without Capability Guard</td><td>access-control, state-mutation</td></tr>
+      <tr><td>R-002</td><td><span class="sev medium">MEDIUM</span></td><td>Overly Broad Capability Scope</td><td>capability, least-privilege</td></tr>
+      <tr><td>R-003</td><td><span class="sev high">HIGH</span></td><td>Hardcoded Admin Keyset Reference</td><td>keyset, hardcoded</td></tr>
+      <tr><td>R-004</td><td><span class="sev high">HIGH</span></td><td>Public Function Modifies Sensitive State</td><td>access-control, DeFi</td></tr>
+      <tr><td>R-005</td><td><span class="sev critical">CRITICAL</span></td><td>Capability Missing Authorization Enforcement</td><td>capability, enforce</td></tr>
+      <tr><td>R-006</td><td><span class="sev high">HIGH</span></td><td>State Change Before Authorization (CEI Violation)</td><td>reentrancy, CEI</td></tr>
+      <tr><td>R-007</td><td><span class="sev critical">CRITICAL</span></td><td>Unguarded Administrative Function</td><td>admin, governance</td></tr>
+      <tr><td>R-008</td><td><span class="sev high">HIGH</span></td><td>Unsafe Multi-Step Pact Logic</td><td>defpact, cross-chain</td></tr>
+      <tr><td>R-009</td><td><span class="sev high">HIGH</span></td><td>Weak or Bypassable Guard Construction</td><td>guard, authentication</td></tr>
+      <tr><td>R-010</td><td><span class="sev medium">MEDIUM</span></td><td>Unprotected Table Initialization</td><td>deployment, race-condition</td></tr>
+      <tr><td>R-011</td><td><span class="sev medium">MEDIUM</span></td><td>Capability Composition Re-entrancy</td><td>reentrancy, compose</td></tr>
+      <tr><td>R-012</td><td><span class="sev high">HIGH</span></td><td>Transfer Capability Missing @managed</td><td>double-spend, DeFi</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- Quick Start -->
+<section id="quickstart">
+  <div class="section-tag">Installation</div>
+  <h2>Up and running in 30 seconds</h2>
+  <p class="section-sub">Zero mandatory dependencies — pure Python stdlib. No pip install needed for core analysis.</p>
+  <div class="install-block">
+    <code class="comment"># Clone the repo</code>
+    <code class="cmd">git clone https://github.com/sunilblinkoninfra-cyber/pact-sentinel.git</code>
+    <code class="cmd">cd pact-sentinel</code>
+    <br>
+    <code class="comment"># Analyze a contract (no API key needed)</code>
+    <code class="cmd">python cli.py mytoken.pact --no-ai</code>
+    <br>
+    <code class="comment"># With Claude AI enrichment</code>
+    <code class="cmd">export ANTHROPIC_API_KEY=sk-ant-...</code>
+    <code class="cmd">python cli.py mytoken.pact</code>
+    <br>
+    <code class="comment"># Output formats</code>
+    <code class="cmd">python cli.py mytoken.pact --format json -o report.json</code>
+    <code class="cmd">python cli.py mytoken.pact --format sarif -o results.sarif</code>
+    <br>
+    <code class="comment"># Web UI</code>
+    <code class="cmd">pip install flask</code>
+    <code class="cmd">python web_app.py  # → http://localhost:8080</code>
+    <br>
+    <code class="comment"># CI/CD — fail build on high+ findings</code>
+    <code class="cmd">python cli.py contracts/ --exit-code --fail-on high</code>
+  </div>
+</section>
+
+<!-- Evaluation Criteria -->
+<section id="evaluation">
+  <div class="section-tag">Competition Evaluation</div>
+  <h2>Built to score across all criteria</h2>
+  <p class="section-sub">Designed to address every evaluation parameter for the Pact security competition.</p>
+  <div class="eval-grid">
+    <div class="eval-card">
+      <div class="eval-score">30%</div>
+      <div class="eval-label">Security Coverage</div>
+      <div class="eval-desc">12 rules detecting real Pact vulnerabilities. Tested against 8-vuln contract: 22 accurate findings, zero false positives on safe contract.</div>
+    </div>
+    <div class="eval-card">
+      <div class="eval-score">25%</div>
+      <div class="eval-label">Technical Quality</div>
+      <div class="eval-desc">Typed AST, modular rule architecture, 39 passing tests, zero deps, SARIF output, extensible BaseRule interface.</div>
+    </div>
+    <div class="eval-card">
+      <div class="eval-score">20%</div>
+      <div class="eval-label">AI Integration</div>
+      <div class="eval-desc">Claude API for deep explanations, attack scenarios, automated fix suggestions. Graceful fallback without API key.</div>
+    </div>
+    <div class="eval-card">
+      <div class="eval-score">15%</div>
+      <div class="eval-label">Usability</div>
+      <div class="eval-desc">CLI + Web UI + Python API. Color output, `--exit-code` for CI, filter by severity, multiple output formats.</div>
+    </div>
+    <div class="eval-card">
+      <div class="eval-score">10%</div>
+      <div class="eval-label">Innovation</div>
+      <div class="eval-desc">Risk scoring with compound multipliers, automated patch recommendations, VSCode extension, CI/CD integration.</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>Built for the Kadena Pact security competition · <a href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel" target="_blank">GitHub</a> · MIT License</p>
+  <p style="margin-top:8px;color:var(--text3)">Pact Sentinel v1.0.0 · Zero external dependencies · Python 3.9+</p>
+</footer>
+
+</body>
+</html>

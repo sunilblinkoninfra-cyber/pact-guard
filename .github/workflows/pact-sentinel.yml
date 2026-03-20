@@ -1,0 +1,295 @@
+## ─────────────────────────────────────────────────────────────────
+## .github/workflows/pact-sentinel.yml
+## Pact Smart Contract Security Scanner — GitHub Actions CI
+##
+## Triggers:
+##   - Every PR that modifies .pact files
+##   - Every push to main/develop
+##   - Manual workflow_dispatch
+##
+## Outputs:
+##   - SARIF results uploaded to GitHub Code Scanning
+##   - JSON report as workflow artifact
+##   - PR comment with findings summary (if PR)
+##   - Build fails if critical/high findings exist
+## ─────────────────────────────────────────────────────────────────
+name: Pact Sentinel — Smart Contract Security Scan
+
+on:
+  push:
+    branches: [main, develop, "release/**"]
+    paths: ["**.pact", "contracts/**"]
+  pull_request:
+    branches: [main, develop]
+    paths: ["**.pact", "contracts/**"]
+  workflow_dispatch:
+    inputs:
+      severity_threshold:
+        description: "Minimum severity to fail build (critical/high/medium/low)"
+        required: false
+        default: "high"
+      skip_rules:
+        description: "Comma-separated rule IDs to skip (e.g. R-003,R-009)"
+        required: false
+        default: ""
+
+env:
+  PYTHON_VERSION: "3.11"
+  FAIL_ON_SEVERITY: ${{ github.event.inputs.severity_threshold || 'high' }}
+
+jobs:
+  # ── Job 1: Discover changed Pact files ────────────────────────────
+  discover:
+    name: Discover Pact Files
+    runs-on: ubuntu-latest
+    outputs:
+      pact_files: ${{ steps.find.outputs.files }}
+      has_pact: ${{ steps.find.outputs.has_pact }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find changed .pact files
+        id: find
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.pact' | head -50)
+          else
+            FILES=$(find . -name "*.pact" -not -path "*/node_modules/*" | head -50)
+          fi
+          
+          if [ -z "$FILES" ]; then
+            echo "has_pact=false" >> $GITHUB_OUTPUT
+            echo "files=[]" >> $GITHUB_OUTPUT
+          else
+            echo "has_pact=true" >> $GITHUB_OUTPUT
+            FILES_JSON=$(echo "$FILES" | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            echo "files=$FILES_JSON" >> $GITHUB_OUTPUT
+            echo "Found pact files: $FILES"
+          fi
+
+  # ── Job 2: Static Analysis (no AI, fast) ──────────────────────────
+  static-analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+    needs: discover
+    if: needs.discover.outputs.has_pact == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install pact-sentinel
+        run: |
+          pip install -r requirements.txt
+          echo "✅ pact-sentinel installed"
+
+      - name: Run static analysis (all .pact files)
+        id: scan
+        run: |
+          SKIP_RULES="${{ github.event.inputs.skip_rules || '' }}"
+          SKIP_ARG=""
+          [ -n "$SKIP_RULES" ] && SKIP_ARG="--skip-rules $SKIP_RULES"
+          
+          python cli.py --dir . \
+            --format sarif \
+            --output results.sarif \
+            --no-ai \
+            $SKIP_ARG \
+            --confidence 0.6
+          
+          python cli.py --dir . \
+            --format json \
+            --output report.json \
+            --no-ai \
+            $SKIP_ARG
+          
+          echo "✅ Scan complete"
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: results.sarif
+          category: pact-sentinel
+
+      - name: Upload JSON report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pact-sentinel-report
+          path: |
+            report.json
+            results.sarif
+          retention-days: 30
+
+      - name: Parse findings for summary
+        id: parse
+        if: always()
+        run: |
+          python3 - << 'EOF'
+          import json, sys, os
+          
+          try:
+              with open("report.json") as f:
+                  data = json.load(f)
+              
+              if isinstance(data, list):
+                  # Directory mode — flatten
+                  all_findings = []
+                  for r in data:
+                      all_findings.extend(r.get("findings", []))
+                  score = min(r.get("risk_score", {}).get("security_score", 100) for r in data) if data else 100
+                  grade = "?"
+              else:
+                  all_findings = data.get("findings", [])
+                  score = data.get("risk_score", {}).get("security_score", 100)
+                  grade = data.get("risk_score", {}).get("letter_grade", "?")
+              
+              critical = sum(1 for f in all_findings if f["severity"] == "critical")
+              high = sum(1 for f in all_findings if f["severity"] == "high")
+              medium = sum(1 for f in all_findings if f["severity"] == "medium")
+              low = sum(1 for f in all_findings if f["severity"] == "low")
+              
+              with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                  f.write(f"critical={critical}\n")
+                  f.write(f"high={high}\n")
+                  f.write(f"medium={medium}\n")
+                  f.write(f"low={low}\n")
+                  f.write(f"total={len(all_findings)}\n")
+                  f.write(f"score={score:.1f}\n")
+                  f.write(f"grade={grade}\n")
+              
+              print(f"Critical: {critical}, High: {high}, Medium: {medium}, Low: {low}")
+          except Exception as e:
+              print(f"Parse error: {e}", file=sys.stderr)
+          EOF
+
+      - name: Job Summary
+        if: always()
+        run: |
+          python3 - << 'EOF'
+          import json
+          
+          try:
+              with open("report.json") as f:
+                  data = json.load(f)
+          except:
+              data = {}
+          
+          summary = """# 🛡️ Pact Sentinel Security Report
+          
+          """
+          
+          if isinstance(data, list):
+              for item in data:
+                  rs = item.get("risk_score", {})
+                  bd = rs.get("breakdown", {})
+                  summary += f"""## `{item.get('analyzed_file', 'unknown')}`
+          Score: **{rs.get('security_score', '?')}/100** | Grade: **{rs.get('letter_grade', '?')}** | {rs.get('label', '')}
+          
+          """
+          else:
+              rs = data.get("risk_score", {})
+              bd = rs.get("breakdown", {})
+              summary += f"""| Metric | Value |
+          |--------|-------|
+          | Security Score | {rs.get('security_score', 0):.1f}/100 |
+          | Grade | {rs.get('letter_grade', '?')} ({rs.get('label', '')}) |
+          | 🔴 Critical | {bd.get('critical', 0)} |
+          | 🟠 High | {bd.get('high', 0)} |
+          | 🟡 Medium | {bd.get('medium', 0)} |
+          | 🟢 Low | {bd.get('low', 0)} |
+          """
+          
+          with open("$GITHUB_STEP_SUMMARY", "a") as f:
+              f.write(summary)
+          EOF
+
+      - name: Fail if critical/high findings exceed threshold
+        run: |
+          python cli.py --dir . \
+            --no-ai \
+            --exit-code \
+            --fail-on ${{ env.FAIL_ON_SEVERITY }}
+
+  # ── Job 3: AI-enriched analysis (on main only, async) ─────────────
+  ai-analysis:
+    name: AI-Enriched Analysis
+    runs-on: ubuntu-latest
+    needs: [discover, static-analysis]
+    if: |
+      github.ref == 'refs/heads/main' &&
+      needs.discover.outputs.has_pact == 'true' &&
+      secrets.ANTHROPIC_API_KEY != ''
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install pact-sentinel
+        run: pip install -r requirements.txt
+
+      - name: Run AI-enriched analysis
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python cli.py --dir . \
+            --format json \
+            --output ai-report.json \
+            --confidence 0.6
+
+      - name: Upload AI report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pact-sentinel-ai-report
+          path: ai-report.json
+          retention-days: 90
+
+  # ── Job 4: Post PR comment ─────────────────────────────────────────
+  pr-comment:
+    name: Comment on PR
+    runs-on: ubuntu-latest
+    needs: static-analysis
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download report
+        uses: actions/download-artifact@v4
+        with:
+          name: pact-sentinel-report
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install pact-sentinel
+        run: pip install -r requirements.txt
+
+      - name: Generate markdown summary
+        run: |
+          python cli.py --dir . --format markdown --no-ai > pr-comment.md
+
+      - name: Post PR comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body-file: pr-comment.md

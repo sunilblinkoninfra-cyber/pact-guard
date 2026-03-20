@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+coverage.xml
+*.cover
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.sarif
+report.json
+ai-report.json
+pr-comment.md
+/web/__pycache__/
+
+# Node (VSCode extension)
+vscode-extension/node_modules/
+vscode-extension/out/
+vscode-extension/*.vsix
+
+# Secrets
+.env.local
+.secrets
+anthropic_key.txt

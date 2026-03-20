@@ -1,0 +1,11 @@
+# pact-sentinel requirements
+# Core engine uses Python stdlib only — zero dependencies needed
+
+# Web UI (optional)
+flask>=3.0.0
+
+# Dev/test
+pytest>=7.4.0
+
+# Optional: Rich for enhanced CLI
+rich>=13.0.0

@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "pact-sentinel"
+version = "1.0.0"
+description = "AI-powered security analyzer for Kadena Pact smart contracts"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Pact Sentinel Team" }]
+keywords = ["pact", "kadena", "blockchain", "security", "smart-contracts", "static-analysis"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Software Development :: Quality Assurance",
+]
+requires-python = ">=3.9"
+dependencies = []  # Zero mandatory deps — stdlib only
+
+[project.optional-dependencies]
+web = ["flask>=3.0.0"]
+dev = ["pytest>=7.4.0", "pytest-cov>=4.1.0"]
+all = ["flask>=3.0.0", "pytest>=7.4.0", "pytest-cov>=4.1.0"]
+
+[project.scripts]
+pact-sentinel = "pact_sentinel.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/sunilblinkoninfra-cyber/pact-sentinel"
+Repository = "https://github.com/sunilblinkoninfra-cyber/pact-sentinel"
+"Bug Tracker" = "https://github.com/sunilblinkoninfra-cyber/pact-sentinel/issues"
+Documentation = "https://sunilblinkoninfra-cyber.github.io/pact-sentinel"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
