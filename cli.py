@@ -48,6 +48,8 @@ def build_parser():
     p.add_argument("--fail-on", choices=["critical","high","medium","low"], default="high")
     p.add_argument("--confidence", type=float, default=0.5)
     p.add_argument("--no-color", action="store_true")
+    p.add_argument("--summary", action="store_true",
+                   help="One-line: grade, score, counts (for shell scripting)")
     p.add_argument("--list-rules", action="store_true")
     p.add_argument("--version", action="version", version="pact-sentinel 1.0.0")
     return p
@@ -134,6 +136,16 @@ def main():
                 else:
                     parts.append(r.as_cli(color=not args.no_color))
             output = "\n\n".join(parts)
+
+    # Handle --summary before full output
+    if getattr(args, 'summary', False):
+        for r in results:
+            rs = r.risk_score
+            bd = rs.breakdown
+            print(f"{rs.letter_grade} | {rs.normalized:.0f}/100 | "
+                  f"crit={bd['critical']} high={bd['high']} med={bd['medium']} low={bd['low']} | "
+                  f"{r.report.get('analyzed_file','?')}")
+        return
 
     if args.output:
         with open(args.output, "w", encoding="utf-8") as f:

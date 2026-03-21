@@ -3,790 +3,372 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pact Sentinel — Smart Contract Security Analyzer</title>
+<title>Pact Sentinel — Live Smart Contract Security Analyzer</title>
+<meta name="description" content="Paste your Kadena Pact smart contract and get instant AI-powered security analysis. Free, open-source, no signup required.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg: #060810;
-  --bg2: #0d1117;
-  --bg3: #161b25;
-  --bg4: #1e2531;
-  --border: rgba(255,255,255,0.07);
-  --border2: rgba(255,255,255,0.12);
-  --text: #e2e8f0;
-  --text2: #94a3b8;
-  --text3: #475569;
-  --accent: #3b82f6;
-  --accent2: #1d4ed8;
-  --accent-glow: rgba(59,130,246,0.15);
-  --critical: #ef4444;
-  --critical-bg: rgba(239,68,68,0.08);
-  --critical-border: rgba(239,68,68,0.25);
-  --high: #f97316;
-  --high-bg: rgba(249,115,22,0.08);
-  --high-border: rgba(249,115,22,0.25);
-  --medium: #eab308;
-  --medium-bg: rgba(234,179,8,0.08);
-  --medium-border: rgba(234,179,8,0.25);
-  --low: #22c55e;
-  --low-bg: rgba(34,197,94,0.08);
-  --low-border: rgba(34,197,94,0.25);
-  --green: #10b981;
-  --purple: #8b5cf6;
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#060810;--bg2:#0d1117;--bg3:#161b25;--bg4:#1e2531;
+  --text:#e2e8f0;--text2:#94a3b8;--text3:#475569;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --accent:#3b82f6;--purple:#8b5cf6;--green:#10b981;
+  --critical:#ef4444;--high:#f97316;--medium:#eab308;--low:#22c55e;
 }
+html{font-size:14px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospace;min-height:100vh;overflow-x:hidden}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* Ambient glow */
+body::after{content:'';position:fixed;width:700px;height:700px;background:var(--accent);border-radius:50%;filter:blur(160px);opacity:0.03;top:-200px;right:-200px;pointer-events:none;z-index:0}
 
-html { font-size: 14px; scroll-behavior: smooth; }
+/* Nav */
+nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:14px 32px;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;box-shadow:0 0 16px rgba(59,130,246,0.25)}
+.logo-name{font-family:'Syne',sans-serif;font-size:17px;font-weight:800}
+.logo-name span{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:14px}
+.badge{font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.8px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.18);color:var(--accent)}
+.badge.live{background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.2);color:var(--green)}
+.badge.live::before{content:'';display:inline-block;width:6px;height:6px;background:var(--green);border-radius:50%;margin-right:5px;box-shadow:0 0 5px var(--green);animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
+.nav-link{font-size:12px;color:var(--text2)}
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
+/* Layout */
+.workspace{display:grid;grid-template-columns:1fr 440px;height:calc(100vh - 57px);position:relative;z-index:1}
 
-/* ── Grid noise texture overlay ── */
-body::before {
-  content: '';
-  position: fixed; inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-  pointer-events: none; z-index: 0; opacity: 0.4;
-}
+/* Editor */
+.editor-panel{display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;padding:11px 18px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.panel-title{font-size:10px;font-weight:500;letter-spacing:1.8px;text-transform:uppercase;color:var(--text2);display:flex;align-items:center;gap:7px}
+.dot{width:6px;height:6px;border-radius:50%}
+.dot-blue{background:var(--accent);box-shadow:0 0 5px var(--accent)}
+.editor-wrap{flex:1;position:relative;overflow:hidden}
+.line-nums{position:absolute;left:0;top:0;bottom:0;width:44px;background:var(--bg2);border-right:1px solid var(--border);padding-top:14px;pointer-events:none;overflow:hidden}
+.ln{height:20px;line-height:20px;font-size:11px;color:var(--text3);text-align:right;padding-right:8px}
+#hl{position:absolute;inset:0;left:44px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:20px;pointer-events:none;overflow:hidden;white-space:pre-wrap;word-break:break-all}
+#ed{position:absolute;inset:0;left:44px;padding:14px 16px;background:var(--bg);color:transparent;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:20px;border:none;outline:none;resize:none;caret-color:var(--accent);tab-size:2;z-index:2}
+/* Token colors */
+.k{color:#c792ea}.d{color:#82aaff}.s{color:#c3e88d}.n{color:#f78c6c}.c{color:var(--text3);font-style:italic}.b{color:#f07178}.bi{color:#89ddff}.at{color:#ffcb6b}
 
-/* ── Ambient glow ── */
-.ambient {
-  position: fixed;
-  width: 600px; height: 600px;
-  border-radius: 50%;
-  filter: blur(120px);
-  pointer-events: none; z-index: 0;
-  opacity: 0.06;
-}
-.ambient-1 { background: var(--accent); top: -200px; left: -100px; }
-.ambient-2 { background: var(--purple); bottom: -200px; right: -100px; }
+.editor-foot{display:flex;align-items:center;justify-content:space-between;padding:9px 18px;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.foot-info{display:flex;gap:14px;font-size:11px;color:var(--text3)}
+.btn-run{display:flex;align-items:center;gap:7px;padding:7px 18px;background:linear-gradient(135deg,var(--accent),var(--purple));color:#fff;border:none;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.3px;transition:all .18s;box-shadow:0 0 18px rgba(59,130,246,0.2)}
+.btn-run:hover{box-shadow:0 0 30px rgba(59,130,246,0.4);transform:translateY(-1px)}
+.btn-run:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.spin{width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── Layout ── */
-#app { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
-
-/* ── Header ── */
-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 32px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(6,8,16,0.8);
-  backdrop-filter: blur(16px);
-  position: sticky; top: 0; z-index: 100;
-}
-
-.logo {
-  display: flex; align-items: center; gap: 12px;
-}
-.logo-icon {
-  width: 36px; height: 36px;
-  background: linear-gradient(135deg, var(--accent), var(--purple));
-  border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 0 20px rgba(59,130,246,0.3);
-}
-.logo-text {
-  font-family: 'Syne', sans-serif;
-  font-size: 18px; font-weight: 800;
-  letter-spacing: -0.5px;
-}
-.logo-text span { color: var(--accent); }
-.logo-sub { font-size: 10px; color: var(--text3); letter-spacing: 2px; text-transform: uppercase; }
-
-.header-actions { display: flex; align-items: center; gap: 12px; }
-
-.badge {
-  font-size: 10px; padding: 3px 8px;
-  border-radius: 4px; letter-spacing: 1px;
-  background: rgba(59,130,246,0.1);
-  border: 1px solid rgba(59,130,246,0.2);
-  color: var(--accent);
-}
-
-/* ── Main layout ── */
-.workspace {
-  display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 0;
-  flex: 1;
-  height: calc(100vh - 65px);
-  overflow: hidden;
-}
-
-/* ── Editor Panel ── */
-.editor-panel {
-  display: flex; flex-direction: column;
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-}
-
-.panel-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg2);
-  flex-shrink: 0;
-}
-
-.panel-title {
-  font-size: 11px; font-weight: 500; letter-spacing: 1.5px;
-  text-transform: uppercase; color: var(--text2);
-  display: flex; align-items: center; gap: 8px;
-}
-.panel-dot { width: 6px; height: 6px; border-radius: 50%; }
-.dot-blue { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-.dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
-.dot-red { background: var(--critical); }
-.dot-yellow { background: var(--medium); }
-
-.tabs {
-  display: flex; gap: 2px;
-}
-.tab {
-  padding: 4px 12px; border-radius: 4px;
-  font-size: 11px; cursor: pointer; color: var(--text3);
-  transition: all 0.15s;
-  border: 1px solid transparent;
-}
-.tab:hover { color: var(--text2); background: var(--bg3); }
-.tab.active {
-  color: var(--text); background: var(--bg3);
-  border-color: var(--border2);
-}
-
-.editor-container {
-  flex: 1; position: relative; overflow: hidden;
-}
-
-.line-numbers {
-  position: absolute; left: 0; top: 0; bottom: 0;
-  width: 48px;
-  background: var(--bg2);
-  border-right: 1px solid var(--border);
-  overflow: hidden;
-  padding-top: 16px;
-  pointer-events: none;
-}
-.line-num {
-  height: 20px; line-height: 20px;
-  font-size: 11px; color: var(--text3);
-  text-align: right; padding-right: 10px;
-  font-family: 'JetBrains Mono', monospace;
-}
-
-#codeEditor {
-  position: absolute; inset: 0;
-  left: 48px;
-  padding: 16px;
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px; line-height: 20px;
-  border: none; outline: none;
-  resize: none;
-  caret-color: var(--accent);
-  tab-size: 2;
-}
-
-/* Pact syntax highlighting layer */
-#highlighted {
-  position: absolute; inset: 0; left: 48px;
-  padding: 16px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px; line-height: 20px;
-  pointer-events: none; overflow: hidden;
-  white-space: pre-wrap; word-break: break-all;
-}
-#codeEditor { color: transparent; }
-
-/* Tokens */
-.tk-keyword { color: #c792ea; }
-.tk-defn { color: #82aaff; }
-.tk-string { color: #c3e88d; }
-.tk-number { color: #f78c6c; }
-.tk-comment { color: var(--text3); font-style: italic; }
-.tk-cap { color: #ffcb6b; }
-.tk-builtin { color: #89ddff; }
-.tk-paren { color: #89ddff; }
-.tk-bool { color: #f07178; }
-
-/* Error highlight in editor */
-.error-line { background: rgba(239,68,68,0.06); border-left: 2px solid var(--critical); }
-
-.editor-footer {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 20px; border-top: 1px solid var(--border);
-  background: var(--bg2); flex-shrink: 0;
-}
-.editor-info { display: flex; gap: 16px; font-size: 11px; color: var(--text3); }
-.editor-info span { display: flex; align-items: center; gap: 4px; }
-
-/* ── Analyze button ── */
-.btn-analyze {
-  display: flex; align-items: center; gap: 8px;
-  padding: 8px 20px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
-  color: white; border: none; border-radius: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px; font-weight: 500;
-  cursor: pointer; letter-spacing: 0.5px;
-  transition: all 0.2s;
-  box-shadow: 0 0 20px rgba(59,130,246,0.25);
-}
-.btn-analyze:hover {
-  box-shadow: 0 0 30px rgba(59,130,246,0.4);
-  transform: translateY(-1px);
-}
-.btn-analyze:active { transform: translateY(0); }
-.btn-analyze:disabled {
-  opacity: 0.5; cursor: not-allowed;
-  box-shadow: none; transform: none;
-}
-.btn-analyze.loading { animation: pulse-btn 1.5s infinite; }
-
-@keyframes pulse-btn {
-  0%, 100% { box-shadow: 0 0 20px rgba(59,130,246,0.25); }
-  50% { box-shadow: 0 0 40px rgba(59,130,246,0.5); }
-}
-
-/* Spinner */
-.spinner {
-  width: 14px; height: 14px;
-  border: 2px solid rgba(255,255,255,0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Results Panel ── */
-.results-panel {
-  display: flex; flex-direction: column;
-  background: var(--bg2);
-  overflow: hidden;
-}
+/* Results panel */
+.results{display:flex;flex-direction:column;background:var(--bg2);overflow:hidden}
 
 /* Score card */
-.score-card {
-  padding: 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg3);
-  flex-shrink: 0;
-}
+.score-card{padding:18px;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0}
+.score-row{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px}
+.grade{font-family:'Syne',sans-serif;font-size:54px;font-weight:800;line-height:1;transition:all .4s}
+.g-a{color:var(--green);text-shadow:0 0 24px rgba(16,185,129,.35)}
+.g-b{color:var(--low)}
+.g-c{color:var(--medium)}
+.g-d{color:var(--high)}
+.g-f{color:var(--critical);text-shadow:0 0 24px rgba(239,68,68,.35)}
+.score-meta{text-align:right}
+.score-label{font-family:'Syne',sans-serif;font-size:13px;font-weight:700}
+.score-val{font-size:11px;color:var(--text2);margin-top:2px}
+.score-time{font-size:10px;color:var(--text3);margin-top:3px}
+.bar-wrap{margin-bottom:12px}
+.bar-bg{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .7s cubic-bezier(.4,0,.2,1);background:linear-gradient(90deg,var(--critical),var(--high),var(--medium),var(--green))}
+.sev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.sev{padding:7px;border-radius:6px;text-align:center;border:1px solid}
+.sev.c{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.22)}
+.sev.h{background:rgba(249,115,22,.07);border-color:rgba(249,115,22,.22)}
+.sev.m{background:rgba(234,179,8,.07);border-color:rgba(234,179,8,.22)}
+.sev.l{background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.22)}
+.sev-n{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1}
+.sev.c .sev-n{color:var(--critical)}.sev.h .sev-n{color:var(--high)}.sev.m .sev-n{color:var(--medium)}.sev.l .sev-n{color:var(--low)}
+.sev-t{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-top:2px}
 
-.score-header {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  margin-bottom: 16px;
-}
+/* Summary box */
+.summary{margin:12px 14px 0;padding:12px;background:rgba(59,130,246,.04);border:1px solid rgba(59,130,246,.14);border-radius:8px;font-size:11px;line-height:1.7;color:var(--text2);flex-shrink:0}
 
-.score-grade {
-  font-family: 'Syne', sans-serif;
-  font-size: 52px; font-weight: 800; line-height: 1;
-  transition: all 0.5s;
-}
-.grade-excellent { color: var(--green); text-shadow: 0 0 30px rgba(16,185,129,0.4); }
-.grade-good { color: var(--low); }
-.grade-medium { color: var(--medium); text-shadow: 0 0 20px rgba(234,179,8,0.3); }
-.grade-high { color: var(--high); text-shadow: 0 0 20px rgba(249,115,22,0.3); }
-.grade-critical { color: var(--critical); text-shadow: 0 0 20px rgba(239,68,68,0.4); }
-
-.score-meta { text-align: right; }
-.score-label { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; }
-.score-num { font-size: 11px; color: var(--text2); margin-top: 2px; }
-.score-time { font-size: 10px; color: var(--text3); margin-top: 4px; }
-
-/* Score bar */
-.score-bar-wrap { margin-bottom: 12px; }
-.score-bar-bg {
-  height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden;
-}
-.score-bar-fill {
-  height: 100%; border-radius: 2px;
-  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
-  background: linear-gradient(90deg, var(--critical), var(--high), var(--medium), var(--green));
-}
-
-/* Severity badges row */
-.severity-row {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-}
-.sev-badge {
-  padding: 8px; border-radius: 6px; text-align: center;
-  border: 1px solid; transition: all 0.3s;
-}
-.sev-badge.critical { background: var(--critical-bg); border-color: var(--critical-border); }
-.sev-badge.high { background: var(--high-bg); border-color: var(--high-border); }
-.sev-badge.medium { background: var(--medium-bg); border-color: var(--medium-border); }
-.sev-badge.low { background: var(--low-bg); border-color: var(--low-border); }
-.sev-num {
-  font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; line-height: 1;
-}
-.sev-badge.critical .sev-num { color: var(--critical); }
-.sev-badge.high .sev-num { color: var(--high); }
-.sev-badge.medium .sev-num { color: var(--medium); }
-.sev-badge.low .sev-num { color: var(--low); }
-.sev-label { font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--text3); margin-top: 2px; }
-
-/* ── Findings list ── */
-.findings-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg2);
-  flex-shrink: 0;
-}
-
-.findings-filter {
-  display: flex; gap: 4px;
-}
-.filter-btn {
-  padding: 3px 8px; border-radius: 4px; font-size: 10px;
-  cursor: pointer; border: 1px solid var(--border);
-  background: transparent; color: var(--text3);
-  font-family: 'JetBrains Mono', monospace;
-  letter-spacing: 0.5px; transition: all 0.15s;
-}
-.filter-btn:hover { border-color: var(--border2); color: var(--text2); }
-.filter-btn.active { background: var(--bg4); border-color: var(--border2); color: var(--text); }
-
-.findings-list {
-  flex: 1; overflow-y: auto; padding: 8px;
-}
-.findings-list::-webkit-scrollbar { width: 4px; }
-.findings-list::-webkit-scrollbar-track { background: transparent; }
-.findings-list::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+/* Findings */
+.findings-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0}
+.filters{display:flex;gap:3px}
+.flt{padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:'JetBrains Mono',monospace;letter-spacing:.4px;transition:all .13s}
+.flt:hover{border-color:var(--border2);color:var(--text2)}
+.flt.on{background:var(--bg4);border-color:var(--border2);color:var(--text)}
+.findings-list{flex:1;overflow-y:auto;padding:7px}
+.findings-list::-webkit-scrollbar{width:3px}
+.findings-list::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 
 /* Finding card */
-.finding-card {
-  border: 1px solid var(--border);
-  border-radius: 8px; margin-bottom: 8px;
-  overflow: hidden; cursor: pointer;
-  transition: all 0.2s;
-  background: var(--bg);
-  animation: slide-in 0.3s ease both;
-}
-@keyframes slide-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.finding-card:hover { border-color: var(--border2); transform: translateX(2px); }
-.finding-card.critical:hover { border-color: var(--critical-border); }
-.finding-card.high:hover { border-color: var(--high-border); }
-.finding-card.medium:hover { border-color: var(--medium-border); }
-.finding-card.low:hover { border-color: var(--low-border); }
-.finding-card.expanded { border-color: var(--border2); }
+.card{border:1px solid var(--border);border-radius:8px;margin-bottom:7px;cursor:pointer;transition:all .18s;background:var(--bg);animation:fadein .25s ease both}
+@keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.card:hover{border-color:var(--border2);transform:translateX(2px)}
+.card.critical:hover,.card.critical.open{border-color:rgba(239,68,68,.3)}
+.card.high:hover,.card.high.open{border-color:rgba(249,115,22,.3)}
+.card.medium:hover,.card.medium.open{border-color:rgba(234,179,8,.25)}
+.card.low:hover,.card.low.open{border-color:rgba(34,197,94,.25)}
+.card-hdr{display:flex;align-items:flex-start;gap:9px;padding:9px 11px}
+.sev-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.card.critical .sev-dot{background:var(--critical);box-shadow:0 0 6px var(--critical)}
+.card.high .sev-dot{background:var(--high);box-shadow:0 0 5px var(--high)}
+.card.medium .sev-dot{background:var(--medium)}
+.card.low .sev-dot{background:var(--low)}
+.card-meta{flex:1;min-width:0}
+.card-ids{display:flex;align-items:center;gap:5px;margin-bottom:2px}
+.card-id{font-size:10px;color:var(--text3)}
+.card-rule{font-size:9px;padding:1px 5px;border-radius:3px;background:var(--bg3);color:var(--text3)}
+.card-sev{font-size:9px;letter-spacing:.3px}
+.card.critical .card-sev{color:var(--critical)}.card.high .card-sev{color:var(--high)}.card.medium .card-sev{color:var(--medium)}.card.low .card-sev{color:var(--low)}
+.card-title{font-size:11.5px;font-weight:500;line-height:1.3}
+.card-loc{font-size:10px;color:var(--text3);margin-top:3px}
+.card-loc span{color:var(--text2)}
+.chevron{color:var(--text3);font-size:10px;transition:transform .18s;flex-shrink:0;padding-top:2px}
+.card.open .chevron{transform:rotate(90deg)}
 
-.finding-header {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 10px 12px;
-}
-.finding-sev-dot {
-  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px;
-}
-.finding-card.critical .finding-sev-dot { background: var(--critical); box-shadow: 0 0 8px var(--critical); }
-.finding-card.high .finding-sev-dot { background: var(--high); box-shadow: 0 0 8px var(--high); }
-.finding-card.medium .finding-sev-dot { background: var(--medium); }
-.finding-card.low .finding-sev-dot { background: var(--low); }
+/* Card body */
+.card-body{padding:0 11px 11px;border-top:1px solid var(--border);display:none}
+.card.open .card-body{display:block}
+.sec{margin-top:9px}
+.sec-lbl{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.sec-txt{font-size:11px;line-height:1.6;color:var(--text2)}
+.ai-badge{display:inline-block;font-size:9px;padding:1px 6px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);border-radius:3px;color:#a78bfa;margin-right:5px}
+.code-blk{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px;font-size:10.5px;line-height:1.6;overflow-x:auto;margin-top:3px}
+.code-blk pre{color:var(--text)}
+.tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:7px}
+.tag{font-size:8.5px;padding:2px 5px;border-radius:3px;background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
 
-.finding-meta { flex: 1; min-width: 0; }
-.finding-id-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
-.finding-id { font-size: 10px; color: var(--text3); }
-.finding-rule { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: var(--bg3); color: var(--text3); }
-.finding-title { font-size: 12px; font-weight: 500; color: var(--text); line-height: 1.3; }
-.finding-loc { font-size: 10px; color: var(--text3); margin-top: 4px; }
-.finding-loc span { color: var(--text2); }
+/* Empty / Loading states */
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--text3);padding:32px;text-align:center}
+.empty-icon{font-size:28px;opacity:.35}
+.empty-title{font-family:'Syne',sans-serif;font-size:14px;color:var(--text2)}
+.empty-hint{font-size:11px;line-height:1.7}
 
-.finding-chevron { color: var(--text3); transition: transform 0.2s; flex-shrink: 0; font-size: 10px; }
-.finding-card.expanded .finding-chevron { transform: rotate(90deg); }
+.loading-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+.orb{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--purple));animation:pulse-orb 1.4s ease-in-out infinite;box-shadow:0 0 25px rgba(59,130,246,.35)}
+@keyframes pulse-orb{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.8}}
+.loading-txt{font-size:12px;color:var(--text2)}
+.loading-step{font-size:10px;color:var(--text3);animation:blink .9s step-end infinite}
+@keyframes blink{50%{opacity:0}}
 
-/* Finding body */
-.finding-body {
-  padding: 0 12px 12px;
-  border-top: 1px solid var(--border);
-  display: none;
-}
-.finding-card.expanded .finding-body { display: block; }
+/* Config modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:24px;width:420px;max-width:90vw}
+.modal h2{font-family:'Syne',sans-serif;font-size:16px;margin-bottom:18px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+.field input,.field textarea{width:100%;padding:8px 11px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;transition:border-color .13s;outline:none}
+.field input:focus,.field textarea:focus{border-color:var(--accent)}
+.field textarea{height:80px;resize:vertical}
+.modal-hint{font-size:10px;color:var(--text3);margin-top:4px;line-height:1.5}
+.modal-btns{display:flex;gap:9px;justify-content:flex-end;margin-top:20px}
+.btn-sec{padding:7px 16px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:'JetBrains Mono',monospace;transition:all .13s}
+.btn-sec:hover{border-color:var(--border2);color:var(--text)}
+.btn-pri{padding:7px 16px;border-radius:6px;font-size:12px;cursor:pointer;background:var(--accent);color:#fff;border:none;font-family:'JetBrains Mono',monospace;transition:all .13s}
+.btn-pri:hover{background:#2563eb}
 
-.finding-section { margin-top: 10px; }
-.finding-section-label {
-  font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--text3); margin-bottom: 5px;
-}
-.finding-section-text { font-size: 11px; line-height: 1.6; color: var(--text2); }
+/* Tabs */
+.tabs{display:flex;gap:2px}
+.tab{padding:4px 11px;border-radius:4px;font-size:10px;cursor:pointer;color:var(--text3);transition:all .13s;border:1px solid transparent}
+.tab:hover{color:var(--text2);background:var(--bg3)}
+.tab.on{color:var(--text);background:var(--bg3);border-color:var(--border2)}
 
-.code-block {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 6px; padding: 10px;
-  font-size: 11px; line-height: 1.6;
-  overflow-x: auto; margin-top: 4px;
-}
-.code-block pre { color: var(--text); }
+/* Export btn */
+.btn-icon{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;background:transparent;border:1px solid var(--border);color:var(--text3);cursor:pointer;font-size:13px;transition:all .13s}
+.btn-icon:hover{background:var(--bg3);border-color:var(--border2);color:var(--text)}
 
-/* Tag pills */
-.finding-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-.tag-pill {
-  font-size: 9px; padding: 2px 6px; border-radius: 3px;
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--text3); letter-spacing: 0.5px;
-}
+/* Toast */
+.toast{position:fixed;bottom:22px;right:22px;padding:9px 15px;border-radius:8px;background:var(--bg3);border:1px solid var(--border2);font-size:12px;color:var(--text);box-shadow:0 6px 28px rgba(0,0,0,.4);transform:translateY(70px);opacity:0;transition:all .25s cubic-bezier(.4,0,.2,1);z-index:9999}
+.toast.show{transform:translateY(0);opacity:1}
 
-/* ── Empty / Loading states ── */
-.empty-state {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 12px; color: var(--text3);
-  padding: 40px;
-}
-.empty-icon { font-size: 32px; opacity: 0.4; }
-.empty-title { font-family: 'Syne', sans-serif; font-size: 14px; color: var(--text2); }
-.empty-sub { font-size: 11px; text-align: center; line-height: 1.6; }
+/* Sample contracts area */
+#examplesView{display:none;padding:14px;overflow-y:auto}
+.sample-btn{width:100%;padding:7px 11px;border-radius:6px;text-align:left;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;margin-bottom:5px;transition:all .13s;display:flex;justify-content:space-between;align-items:center}
+.sample-btn:hover{background:var(--bg4);border-color:var(--border2);color:var(--text)}
+.sample-tag{font-size:9px;padding:1px 6px;border-radius:3px}
+.tag-vuln{background:rgba(239,68,68,.1);color:var(--critical);border:1px solid rgba(239,68,68,.2)}
+.tag-safe{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.tag-med{background:rgba(234,179,8,.1);color:var(--medium);border:1px solid rgba(234,179,8,.2)}
 
-.loading-state {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 16px;
-}
-.loading-orb {
-  width: 48px; height: 48px; border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--purple));
-  animation: pulse-orb 1.5s ease-in-out infinite;
-  box-shadow: 0 0 30px rgba(59,130,246,0.4);
-}
-@keyframes pulse-orb {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
-}
-.loading-text { font-size: 12px; color: var(--text2); }
-.loading-step { font-size: 10px; color: var(--text3); animation: blink 1s step-end infinite; }
-@keyframes blink { 50% { opacity: 0; } }
+/* How it works note */
+.how-note{margin:10px;padding:10px;background:rgba(59,130,246,.04);border:1px solid rgba(59,130,246,.12);border-radius:7px;font-size:10px;color:var(--text3);line-height:1.6}
+.how-note strong{color:var(--text2)}
 
-/* ── Summary ── */
-.summary-box {
-  padding: 14px;
-  background: rgba(59,130,246,0.04);
-  border: 1px solid rgba(59,130,246,0.15);
-  border-radius: 8px; margin: 12px 16px 0;
-  font-size: 11px; line-height: 1.7; color: var(--text2);
-  flex-shrink: 0;
-}
-
-/* ── Toolbar buttons ── */
-.btn-icon {
-  width: 28px; height: 28px; border-radius: 5px;
-  display: flex; align-items: center; justify-content: center;
-  background: transparent; border: 1px solid var(--border);
-  color: var(--text3); cursor: pointer; font-size: 13px;
-  transition: all 0.15s;
-}
-.btn-icon:hover { background: var(--bg3); border-color: var(--border2); color: var(--text); }
-
-/* ── Toast ── */
-.toast {
-  position: fixed; bottom: 24px; right: 24px;
-  padding: 10px 16px; border-radius: 8px;
-  background: var(--bg3); border: 1px solid var(--border2);
-  font-size: 12px; color: var(--text);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  transform: translateY(80px); opacity: 0;
-  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
-  z-index: 9999;
-}
-.toast.show { transform: translateY(0); opacity: 1; }
-
-/* ── Settings drawer ── */
-.settings-panel {
-  position: absolute; right: 0; top: 0; bottom: 0;
-  width: 300px; background: var(--bg2);
-  border-left: 1px solid var(--border);
-  padding: 20px;
-  transform: translateX(100%);
-  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
-  z-index: 50; overflow-y: auto;
-}
-.settings-panel.open { transform: translateX(0); }
-
-.settings-group { margin-bottom: 20px; }
-.settings-label { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
-.settings-input {
-  width: 100%; padding: 8px 12px;
-  background: var(--bg); border: 1px solid var(--border);
-  border-radius: 6px; color: var(--text);
-  font-family: 'JetBrains Mono', monospace; font-size: 12px;
-  transition: border-color 0.15s;
-}
-.settings-input:focus { outline: none; border-color: var(--accent); }
-.settings-toggle {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 0;
-}
-.toggle-label { font-size: 12px; color: var(--text2); }
-.toggle {
-  width: 36px; height: 20px; border-radius: 10px;
-  background: var(--bg4); border: 1px solid var(--border);
-  position: relative; cursor: pointer; transition: background 0.2s;
-}
-.toggle.on { background: var(--accent); border-color: var(--accent); }
-.toggle-thumb {
-  width: 14px; height: 14px; border-radius: 50%;
-  background: white; position: absolute; top: 2px; left: 2px;
-  transition: transform 0.2s;
-}
-.toggle.on .toggle-thumb { transform: translateX(16px); }
-
-/* ── Examples ── */
-.example-btn {
-  width: 100%; padding: 6px 10px; border-radius: 5px; text-align: left;
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--text2); font-family: 'JetBrains Mono', monospace;
-  font-size: 11px; cursor: pointer; margin-bottom: 4px;
-  transition: all 0.15s; display: flex; justify-content: space-between;
-}
-.example-btn:hover { background: var(--bg4); border-color: var(--border2); color: var(--text); }
-.example-tag { font-size: 9px; color: var(--critical); }
-
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .workspace { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
-  .editor-panel { border-right: none; border-bottom: 1px solid var(--border); }
-}
-
-/* ── Scrollbar global ── */
-* { scrollbar-width: thin; scrollbar-color: var(--bg4) transparent; }
-
-/* ── Transition for findings ── */
-.finding-card { animation-delay: calc(var(--idx) * 0.04s); }
+@media(max-width:860px){.workspace{grid-template-columns:1fr;grid-template-rows:1fr 1fr}.editor-panel{border-right:none;border-bottom:1px solid var(--border)}}
 </style>
 </head>
 <body>
-<div class="ambient ambient-1"></div>
-<div class="ambient ambient-2"></div>
-
-<div id="app">
-  <!-- Header -->
-  <header>
-    <div class="logo">
-      <div class="logo-icon">🛡️</div>
-      <div>
-        <div class="logo-text">Pact <span>Sentinel</span></div>
-        <div class="logo-sub">Smart Contract Auditor</div>
-      </div>
+<nav>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    <div>
+      <div class="logo-name">Pact <span>Sentinel</span></div>
     </div>
-    <div class="header-actions">
-      <span class="badge">v1.0.0</span>
-      <span class="badge" style="color:var(--green);border-color:rgba(34,197,94,0.2);background:rgba(34,197,94,0.05)">Kadena / Pact</span>
-      <button class="btn-icon" id="settingsBtn" title="Settings">⚙</button>
-    </div>
-  </header>
+  </div>
+  <div class="nav-right">
+    <span class="badge live">live</span>
+    <span class="badge">v1.0.0</span>
+    <a class="nav-link" href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel" target="_blank">GitHub ↗</a>
+    <button class="btn-icon" id="settingsBtn" title="Settings">⚙</button>
+  </div>
+</nav>
 
-  <!-- Workspace -->
-  <div class="workspace" style="position:relative">
-    <!-- Left: Editor -->
-    <div class="editor-panel">
-      <div class="panel-header">
-        <div class="panel-title">
-          <div class="panel-dot dot-blue"></div>
-          CONTRACT EDITOR
+<div class="workspace">
+  <!-- Editor -->
+  <div class="editor-panel">
+    <div class="panel-hdr">
+      <div class="panel-title"><div class="dot dot-blue"></div>CONTRACT EDITOR</div>
+      <div style="display:flex;align-items:center;gap:7px">
+        <div class="tabs">
+          <div class="tab on" id="tabEd" onclick="switchTab('editor')">editor</div>
+          <div class="tab" id="tabEx" onclick="switchTab('examples')">examples</div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <div class="tabs">
-            <div class="tab active" id="tabEditor">editor</div>
-            <div class="tab" id="tabExamples">examples</div>
-          </div>
-          <button class="btn-icon" id="clearBtn" title="Clear editor">✕</button>
-          <button class="btn-icon" id="copyBtn" title="Copy code">⎘</button>
-        </div>
-      </div>
-
-      <!-- Editor view -->
-      <div id="editorView" class="editor-container">
-        <div class="line-numbers" id="lineNumbers"></div>
-        <div id="highlighted" aria-hidden="true"></div>
-        <textarea id="codeEditor" spellcheck="false"
-          placeholder="; Paste or type your Pact smart contract here...
-; Example:
-(module my-token GOVERNANCE
-  (defcap GOVERNANCE ()
-    (enforce-guard (keyset-ref-guard 'admin-ks)))
-  ...)"></textarea>
-      </div>
-
-      <!-- Examples view -->
-      <div id="examplesView" style="display:none;padding:16px;overflow-y:auto">
-        <p style="font-size:11px;color:var(--text3);margin-bottom:12px">
-          Load example contracts for testing:
-        </p>
-        <button class="example-btn" onclick="loadExample('vulnerable')">
-          vulnerable-defi.pact <span class="example-tag">22 findings · F-</span>
-        </button>
-        <button class="example-btn" onclick="loadExample('safe')">
-          safe-token.pact <span style="font-size:9px;color:var(--green)">0 findings · A+</span>
-        </button>
-        <button class="example-btn" onclick="loadExample('medium')">
-          staking-pool.pact <span style="font-size:9px;color:var(--medium)">3 findings · C</span>
-        </button>
-      </div>
-
-      <div class="editor-footer">
-        <div class="editor-info">
-          <span id="lineInfo">Ln 1, Col 1</span>
-          <span id="charCount">0 chars</span>
-          <span id="statusDot" style="color:var(--text3)">● ready</span>
-        </div>
-        <button class="btn-analyze" id="analyzeBtn" onclick="runAnalysis()">
-          <span id="btnIcon">▶</span>
-          <span id="btnText">Analyze</span>
-        </button>
+        <button class="btn-icon" onclick="clearEditor()" title="Clear">✕</button>
+        <button class="btn-icon" onclick="copyCode()" title="Copy">⎘</button>
       </div>
     </div>
 
-    <!-- Right: Results -->
-    <div class="results-panel" id="resultsPanel">
-      <!-- Empty state -->
-      <div class="empty-state" id="emptyState">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-title">Ready to Analyze</div>
-        <div class="empty-sub">
-          Paste your Pact smart contract in the editor<br>
-          and click <strong>Analyze</strong> to scan for vulnerabilities.
-        </div>
-        <div style="margin-top:16px;font-size:10px;color:var(--text3);line-height:1.8">
-          Detects: missing capability guards · empty defcaps · CEI violations<br>
-          unguarded admin functions · unmanaged transfer caps · and more
-        </div>
+    <div id="editorView" class="editor-wrap">
+      <div class="line-nums" id="lnums"></div>
+      <div id="hl" aria-hidden="true"></div>
+      <textarea id="ed" spellcheck="false" autocomplete="off"
+        placeholder="; Paste your Pact smart contract here...
+;
+; Examples:
+;   (module my-token GOVERNANCE
+;     (defcap GOVERNANCE ()
+;       (enforce-guard (keyset-ref-guard 'ns.admin-ks)))
+;     ...)
+;
+; Then click Analyze  (Ctrl+Enter)
+"></textarea>
+    </div>
+
+    <div id="examplesView">
+      <p style="font-size:11px;color:var(--text3);margin-bottom:10px">Load a sample contract:</p>
+      <button class="sample-btn" onclick="loadSample('vulnerable')">
+        vulnerable-defi.pact <span class="sample-tag tag-vuln">23 vulns · F-</span>
+      </button>
+      <button class="sample-btn" onclick="loadSample('safe')">
+        safe-token.pact <span class="sample-tag tag-safe">0 vulns · A+</span>
+      </button>
+      <button class="sample-btn" onclick="loadSample('staking')">
+        staking-pool.pact <span class="sample-tag tag-med">medium risk</span>
+      </button>
+    </div>
+
+    <div class="editor-foot">
+      <div class="foot-info">
+        <span id="lnInfo">Ln 1</span>
+        <span id="charInfo">0 chars</span>
+        <span id="statusLbl">● ready</span>
       </div>
+      <button class="btn-run" id="runBtn" onclick="runAnalysis()">
+        <span id="runIcon">▶</span>
+        <span id="runTxt">Analyze</span>
+      </button>
+    </div>
+  </div>
 
-      <!-- Loading state -->
-      <div class="loading-state" id="loadingState" style="display:none">
-        <div class="loading-orb"></div>
-        <div class="loading-text">Analyzing contract…</div>
-        <div class="loading-step" id="loadingStep">Parsing AST…</div>
-      </div>
-
-      <!-- Results -->
-      <div id="resultsView" style="display:none;flex:1;overflow:hidden;display:none;flex-direction:column">
-        <!-- Score card -->
-        <div class="score-card" id="scoreCard">
-          <div class="score-header">
-            <div>
-              <div style="font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:4px">SECURITY GRADE</div>
-              <div class="score-grade" id="scoreGrade">—</div>
-            </div>
-            <div class="score-meta">
-              <div class="score-label" id="scoreLabel">—</div>
-              <div class="score-num" id="scoreNum">—/100</div>
-              <div class="score-time" id="scanTime">—</div>
-            </div>
-          </div>
-          <div class="score-bar-wrap">
-            <div class="score-bar-bg">
-              <div class="score-bar-fill" id="scoreBar" style="width:0%"></div>
-            </div>
-          </div>
-          <div class="severity-row">
-            <div class="sev-badge critical">
-              <div class="sev-num" id="countCritical">0</div>
-              <div class="sev-label">Critical</div>
-            </div>
-            <div class="sev-badge high">
-              <div class="sev-num" id="countHigh">0</div>
-              <div class="sev-label">High</div>
-            </div>
-            <div class="sev-badge medium">
-              <div class="sev-num" id="countMedium">0</div>
-              <div class="sev-label">Medium</div>
-            </div>
-            <div class="sev-badge low">
-              <div class="sev-num" id="countLow">0</div>
-              <div class="sev-label">Low</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Summary -->
-        <div class="summary-box" id="summaryBox"></div>
-
-        <!-- Findings header -->
-        <div class="findings-header">
-          <div class="panel-title">
-            <div class="panel-dot dot-red"></div>
-            <span id="findingsCount">FINDINGS</span>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div class="findings-filter" id="filterBtns">
-              <button class="filter-btn active" data-filter="all">all</button>
-              <button class="filter-btn" data-filter="critical" style="color:var(--critical)">crit</button>
-              <button class="filter-btn" data-filter="high" style="color:var(--high)">high</button>
-              <button class="filter-btn" data-filter="medium" style="color:var(--medium)">med</button>
-              <button class="filter-btn" data-filter="low" style="color:var(--low)">low</button>
-            </div>
-            <button class="btn-icon" id="exportBtn" title="Export JSON">↓</button>
-          </div>
-        </div>
-
-        <!-- Findings list -->
-        <div class="findings-list" id="findingsList"></div>
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="empty" id="emptyState">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">Ready to audit</div>
+      <div class="empty-hint">
+        Paste your Pact contract, choose an example,<br>
+        or drop a .pact file — then click Analyze.<br><br>
+        Detects 12 vulnerability classes including<br>
+        CEI violations, empty capabilities, unguarded<br>
+        admin functions, and missing @managed.
       </div>
     </div>
 
-    <!-- Settings drawer -->
-    <div class="settings-panel" id="settingsPanel">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700">Settings</div>
-        <button class="btn-icon" id="closeSettings">✕</button>
-      </div>
+    <div class="loading-wrap" id="loadingState" style="display:none">
+      <div class="orb"></div>
+      <div class="loading-txt">Analyzing contract…</div>
+      <div class="loading-step" id="loadStep">Parsing AST…</div>
+    </div>
 
-      <div class="settings-group">
-        <div class="settings-label">Anthropic API Key</div>
-        <input type="password" class="settings-input" id="apiKeyInput"
-          placeholder="sk-ant-api03-..." />
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">
-          Optional. Enables AI-powered explanations.
-        </div>
-      </div>
-
-      <div class="settings-group">
-        <div class="settings-label">AI Enrichment</div>
-        <div class="settings-toggle">
-          <span class="toggle-label">Enable AI analysis</span>
-          <div class="toggle" id="aiToggle" onclick="toggleAI()">
-            <div class="toggle-thumb"></div>
+    <div id="resultsView" style="display:none;flex:1;overflow:hidden;flex-direction:column">
+      <div class="score-card">
+        <div class="score-row">
+          <div>
+            <div style="font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:3px">SECURITY GRADE</div>
+            <div class="grade" id="grade">—</div>
+          </div>
+          <div class="score-meta">
+            <div class="score-label" id="scoreLabel">—</div>
+            <div class="score-val" id="scoreVal">—/100</div>
+            <div class="score-time" id="scoreTime"></div>
           </div>
         </div>
-      </div>
-
-      <div class="settings-group">
-        <div class="settings-label">Confidence Threshold</div>
-        <input type="range" min="0" max="1" step="0.1" value="0.5"
-          id="confidenceSlider"
-          style="width:100%;accent-color:var(--accent)" />
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">
-          Min confidence: <span id="confidenceVal">0.5</span>
+        <div class="bar-wrap"><div class="bar-bg"><div class="bar-fill" id="barFill" style="width:0"></div></div></div>
+        <div class="sev-grid">
+          <div class="sev c"><div class="sev-n" id="cCrit">0</div><div class="sev-t">Critical</div></div>
+          <div class="sev h"><div class="sev-n" id="cHigh">0</div><div class="sev-t">High</div></div>
+          <div class="sev m"><div class="sev-n" id="cMed">0</div><div class="sev-t">Medium</div></div>
+          <div class="sev l"><div class="sev-n" id="cLow">0</div><div class="sev-t">Low</div></div>
         </div>
       </div>
 
-      <div class="settings-group">
-        <div class="settings-label">Skip Rules</div>
-        <input type="text" class="settings-input" id="skipRulesInput"
-          placeholder="R-003,R-009" />
-        <div style="font-size:10px;color:var(--text3);margin-top:4px">
-          Comma-separated rule IDs to ignore.
+      <div class="summary" id="summaryBox" style="display:none"></div>
+
+      <div class="findings-hdr">
+        <div class="panel-title" style="font-size:9px">
+          <div class="dot" style="background:var(--critical);box-shadow:0 0 4px var(--critical)"></div>
+          <span id="findCount">FINDINGS</span>
+        </div>
+        <div style="display:flex;gap:7px;align-items:center">
+          <div class="filters" id="filters">
+            <button class="flt on" data-f="all">all</button>
+            <button class="flt" data-f="critical" style="color:var(--critical)">crit</button>
+            <button class="flt" data-f="high" style="color:var(--high)">high</button>
+            <button class="flt" data-f="medium" style="color:var(--medium)">med</button>
+            <button class="flt" data-f="low" style="color:var(--low)">low</button>
+          </div>
+          <button class="btn-icon" id="exportBtn" title="Export JSON">↓</button>
         </div>
       </div>
 
-      <div class="settings-group">
-        <div class="settings-label">Output Format</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">
-          <button class="filter-btn active" id="fmtJSON" onclick="setFmt('json')">JSON</button>
-          <button class="filter-btn" id="fmtMD" onclick="setFmt('markdown')">Markdown</button>
-          <button class="filter-btn" id="fmtSARIF" onclick="setFmt('sarif')">SARIF</button>
-        </div>
-      </div>
+      <div class="findings-list" id="findingsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal-overlay" id="settingsModal" style="display:none" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <h2>Settings</h2>
+
+    <div class="field">
+      <label>Anthropic API Key (optional)</label>
+      <input type="password" id="apiKeyInp" placeholder="sk-ant-api03-…">
+      <div class="modal-hint">Enables AI-powered deep explanations and auto-fix suggestions.</div>
+    </div>
+
+    <div class="field">
+      <label>GitHub Token (for live analysis)</label>
+      <input type="password" id="ghTokenInp" placeholder="ghp_…">
+      <div class="modal-hint">Required to trigger the serverless analysis backend. Needs <code>repo</code> + <code>gist</code> scope. <a href="https://github.com/settings/tokens/new" target="_blank">Create one →</a></div>
+    </div>
+
+    <div class="field">
+      <label>Analysis mode</label>
+      <select id="modeSelect" style="width:100%;padding:8px 11px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none">
+        <option value="local">Browser-only (static patterns, instant)</option>
+        <option value="github">GitHub Actions (full engine + AI)</option>
+      </select>
+      <div class="modal-hint" id="modeHint">Runs pattern matching directly in your browser. No server, no data sent anywhere.</div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="btn-sec" onclick="closeSettings()">Cancel</button>
+      <button class="btn-pri" onclick="saveSettings()">Save</button>
     </div>
   </div>
 </div>
@@ -794,707 +376,690 @@ header {
 <div class="toast" id="toast"></div>
 
 <script>
-// ── State ─────────────────────────────────────────────
-const state = {
+// ── Constants ─────────────────────────────────────────────────────
+const REPO = 'sunilblinkoninfra-cyber/pact-sentinel';
+const GH_API = 'https://api.github.com';
+
+// ── State ─────────────────────────────────────────────────────────
+const S = {
   findings: [],
   report: null,
   filter: 'all',
-  useAI: false,
-  exportFmt: 'json',
   loading: false,
+  apiKey: localStorage.getItem('ps_api_key') || '',
+  ghToken: localStorage.getItem('ps_gh_token') || '',
+  mode: localStorage.getItem('ps_mode') || 'local',
 };
 
-// ── Examples ─────────────────────────────────────────
-const EXAMPLES = {
-  vulnerable: `;;  vulnerable-defi.pact — INTENTIONALLY INSECURE — DO NOT DEPLOY
+// ── Sample contracts ──────────────────────────────────────────────
+const SAMPLES = {
+vulnerable:`;;  vulnerable-defi.pact — INTENTIONALLY INSECURE — for testing only
 (define-keyset 'admin "admin")
 
 (module vulnerable-defi-token 'admin
-  "Vulnerable DeFi token with multiple security issues."
+  "DeFi token with multiple security vulnerabilities."
 
-  (defschema account-schema
-    balance:decimal
-    guard:guard)
-
-  (defschema config-schema
-    total-supply:decimal
-    paused:bool)
-
+  (defschema account-schema balance:decimal guard:guard)
+  (defschema config-schema total-supply:decimal paused:bool)
   (deftable accounts:{account-schema})
   (deftable config:{config-schema})
 
-  ;; VULN: Empty capability — grants nothing meaningful
-  (defcap TRANSFER (sender:string receiver:string amount:decimal)
-    "Transfer capability — completely unprotected!"
-  )
+  ;; VULN: empty capability body
+  (defcap TRANSFER (sender:string receiver:string amount:decimal))
 
-  ;; VULN: No @managed annotation — double-spend possible
+  ;; VULN: no @managed — double-spend possible
   (defcap DEBIT (sender:string amount:decimal)
-    (enforce (> amount 0.0) "Amount must be positive")
-  )
+    (enforce (> amount 0.0) "Amount positive"))
 
-  (defcap CREDIT (receiver:string amount:decimal)
-    ;; intentionally empty
-  )
-
-  ;; VULN: Admin init callable by ANYONE
+  ;; VULN: anyone can init
   (defun init (initial-supply:decimal)
-    (insert config "global"
-      { 'total-supply: initial-supply
-      , 'paused: false })
-  )
+    (insert config "global" {'total-supply: initial-supply, 'paused: false}))
 
-  ;; VULN: State mutation BEFORE auth check (CEI violation)
+  ;; VULN: CEI violation + no capability guard
   (defun transfer (sender:string receiver:string amount:decimal)
-    (with-read accounts sender { 'balance := old-sender-bal }
-      (with-read accounts receiver { 'balance := old-receiver-bal }
-        (update accounts sender { 'balance: (- old-sender-bal amount) })
-        (update accounts receiver { 'balance: (+ old-receiver-bal amount) })
-        (enforce (>= old-sender-bal amount) "Insufficient funds")
-      ))
-  )
+    (with-read accounts sender {'balance := s-bal}
+      (with-read accounts receiver {'balance := r-bal}
+        (update accounts sender {'balance: (- s-bal amount)})
+        (update accounts receiver {'balance: (+ r-bal amount)})
+        (enforce (>= s-bal amount) "Insufficient funds"))))
 
-  ;; VULN: Anyone can mint tokens
+  ;; VULN: public unguarded mint
   (defun mint (account:string amount:decimal)
-    (with-read accounts account { 'balance := current }
-      (update accounts account { 'balance: (+ current amount) }))
-  )
+    (with-read accounts account {'balance := b}
+      (update accounts account {'balance: (+ b amount)})))
 
-  ;; VULN: Unguarded admin function
+  ;; VULN: unguarded admin
   (defun pause ()
-    (update config "global" { 'paused: true })
-  )
+    (update config "global" {'paused: true}))
 
   (defun get-balance (account:string)
-    (at 'balance (read accounts account)))
-)`,
+    (at 'balance (read accounts account))))`,
 
-  safe: `;;  safe-token.pact — Secure reference implementation
+safe:`;;  safe-token.pact — secure reference implementation
 (namespace 'free)
 (define-keyset 'free.admin-ks (read-keyset "admin-keyset"))
 
 (module safe-token GOVERNANCE
-  "Secure fungible token following Pact best practices."
+  @doc "Secure token following Pact best practices."
 
   (defcap GOVERNANCE ()
     @doc "Module governance — requires admin keyset"
     (enforce-guard (keyset-ref-guard 'free.admin-ks)))
 
   (defcap TRANSFER (sender:string receiver:string amount:decimal)
-    @doc "Transfer capability with managed amount"
     @managed amount TRANSFER-mgr
     (enforce-guard (at 'guard (read accounts sender)))
-    (enforce (> amount 0.0) "Amount must be positive"))
+    (enforce (> amount 0.0) "Amount positive")
+    (enforce (!= sender receiver) "No self-transfer"))
 
   (defun TRANSFER-mgr:decimal (managed:decimal requested:decimal)
-    (enforce (>= managed requested) "Exceeds authorized amount")
+    (enforce (>= managed requested) "Exceeds authorization")
     (- managed requested))
 
-  (defcap DEBIT (sender:string amount:decimal)
-    @managed amount DEBIT-mgr
-    (enforce-guard (at 'guard (read accounts sender))))
-
-  (defun DEBIT-mgr:decimal (m:decimal r:decimal)
-    (enforce (>= m r) "Exceeds debit authorization")
-    (- m r))
-
-  (defschema account-schema
-    balance:decimal
-    guard:guard)
-
+  (defschema account-schema balance:decimal guard:guard)
   (deftable accounts:{account-schema})
 
   (defun create-account (account:string guard:guard)
-    @doc "Create a new account — protected by account guard"
-    (enforce (!= account "") "Account name cannot be empty")
-    (insert accounts account
-      { 'balance: 0.0
-      , 'guard: guard }))
+    (enforce (!= account "") "Non-empty account")
+    (insert accounts account {'balance: 0.0, 'guard: guard}))
 
   (defun transfer (sender:string receiver:string amount:decimal)
-    @doc "Transfer tokens with full capability protection"
-    ;; 1. CHECKS
-    (enforce (!= sender receiver) "Cannot self-transfer")
-    (enforce (> amount 0.0) "Amount must be positive")
-    ;; 2. EFFECTS (within capability scope)
+    ;; 1. CHECKS first
+    (enforce (!= sender receiver) "No self-transfer")
+    (enforce (> amount 0.0) "Positive amount")
+    ;; 2. EFFECTS under capability
     (with-capability (TRANSFER sender receiver amount)
-      (with-read accounts sender { 'balance := sender-bal }
-        (enforce (>= sender-bal amount) "Insufficient balance")
-        (update accounts sender { 'balance: (- sender-bal amount) }))
-      (with-read accounts receiver { 'balance := receiver-bal }
-        (update accounts receiver { 'balance: (+ receiver-bal amount) }))))
+      (with-read accounts sender {'balance := s-bal}
+        (enforce (>= s-bal amount) "Insufficient funds")
+        (update accounts sender {'balance: (- s-bal amount)}))
+      (with-read accounts receiver {'balance := r-bal}
+        (update accounts receiver {'balance: (+ r-bal amount)}))))
 
   (defun get-balance (account:string)
-    (at 'balance (read accounts account)))
-)`,
+    (at 'balance (read accounts account))))`,
 
-  medium: `;;  staking-pool.pact — Staking contract with some issues
+staking:`;;  staking-pool.pact — staking contract with some issues
 (module staking-pool GOVERNANCE
   (defcap GOVERNANCE ()
     (enforce-guard (keyset-ref-guard 'admin-ks)))
 
+  ;; Missing @managed on STAKE capability
   (defcap STAKE (account:string amount:decimal)
-    ;; Missing @managed annotation — VULN R-012
     (enforce-guard (at 'guard (read stakers account))))
 
-  (defschema staker-schema
-    amount:decimal
-    guard:guard
-    reward-debt:decimal)
+  (defschema staker amount:decimal guard:guard reward-debt:decimal)
+  (deftable stakers:{staker})
+  (deftable pool-config:{object})
 
-  (deftable stakers:{staker-schema})
-  (deftable pool-info:{object})
-
-  ;; Public init — VULN R-010
+  ;; Unprotected init function
   (defun init-pool (reward-rate:decimal)
-    (insert pool-info 'config
-      { 'reward-rate: reward-rate
-      , 'total-staked: 0.0 }))
+    (insert pool-config 'config
+      {'reward-rate: reward-rate, 'total-staked: 0.0}))
 
   (defun stake (account:string amount:decimal)
-    @doc "Stake tokens into the pool"
+    @doc "Stake tokens into pool"
     (with-capability (STAKE account amount)
-      (with-read stakers account { 'amount := current }
-        (update stakers account
-          { 'amount: (+ current amount) }))))
+      (with-read stakers account {'amount := current}
+        (update stakers account {'amount: (+ current amount)}))))
 
   (defun get-stake (account:string)
-    (at 'amount (read stakers account)))
-)`,
+    (at 'amount (read stakers account))))`,
 };
 
-// ── Init ─────────────────────────────────────────────
+// ── Init ─────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  updateLineNumbers();
-  setupEditor();
-  setupSettings();
-  setupFilters();
-  setupTabs();
+  updateLineNums();
+  const ed = document.getElementById('ed');
+  ed.addEventListener('input', () => { updateLineNums(); highlight(); updateFooter(); });
+  ed.addEventListener('keydown', e => {
+    if (e.key === 'Tab') { e.preventDefault(); const s=ed.selectionStart; ed.value=ed.value.slice(0,s)+'  '+ed.value.slice(ed.selectionEnd); ed.selectionStart=ed.selectionEnd=s+2; updateLineNums(); highlight(); }
+    if ((e.ctrlKey||e.metaKey) && e.key==='Enter') runAnalysis();
+  });
+  ed.addEventListener('scroll', () => { const hl=document.getElementById('hl'); hl.scrollTop=ed.scrollTop; document.getElementById('lnums').scrollTop=ed.scrollTop; });
+  document.getElementById('filters').addEventListener('click', e => {
+    const b = e.target.closest('.flt'); if (!b) return;
+    S.filter = b.dataset.f;
+    document.querySelectorAll('.flt').forEach(x => x.classList.toggle('on', x===b));
+    renderFindings(S.findings);
+  });
+  document.getElementById('exportBtn').addEventListener('click', exportJSON);
+  document.getElementById('settingsBtn').addEventListener('click', openSettings);
+  document.getElementById('modeSelect').addEventListener('change', e => {
+    document.getElementById('modeHint').textContent = e.target.value === 'local'
+      ? 'Runs pattern matching directly in your browser. No server, no data sent anywhere.'
+      : 'Triggers a GitHub Actions workflow for full analysis + Claude AI. Requires GitHub token.';
+  });
+  document.addEventListener('keydown', e => { if (e.key==='Escape') closeSettings(); });
+
+  // Drag & drop
+  document.body.addEventListener('dragover', e => e.preventDefault());
+  document.body.addEventListener('drop', e => {
+    e.preventDefault();
+    const f = e.dataTransfer.files[0];
+    if (f && f.name.endsWith('.pact')) {
+      const r = new FileReader();
+      r.onload = ev => { document.getElementById('ed').value = ev.target.result; updateLineNums(); highlight(); updateFooter(); toast('Loaded: ' + f.name); };
+      r.readAsText(f);
+    }
+  });
 });
 
-function setupEditor() {
-  const editor = document.getElementById('codeEditor');
-  editor.addEventListener('input', () => {
-    updateLineNumbers();
-    highlight();
-    updateEditorInfo();
-  });
-  editor.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      e.preventDefault();
-      const start = editor.selectionStart;
-      const end = editor.selectionEnd;
-      editor.value = editor.value.substring(0, start) + '  ' + editor.value.substring(end);
-      editor.selectionStart = editor.selectionEnd = start + 2;
-      updateLineNumbers();
-      highlight();
-    }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      runAnalysis();
-    }
-  });
-  editor.addEventListener('scroll', syncScroll);
-  editor.addEventListener('click', updateEditorInfo);
-  editor.addEventListener('keyup', updateEditorInfo);
+// ── Line numbers & highlight ──────────────────────────────────────
+function updateLineNums() {
+  const ed = document.getElementById('ed');
+  const n = ed.value.split('\n').length;
+  document.getElementById('lnums').innerHTML = Array.from({length:n},(_,i)=>`<div class="ln">${i+1}</div>`).join('');
 }
 
-function syncScroll() {
-  const editor = document.getElementById('codeEditor');
-  const hl = document.getElementById('highlighted');
-  const ln = document.getElementById('lineNumbers');
-  hl.scrollTop = editor.scrollTop;
-  hl.scrollLeft = editor.scrollLeft;
-  ln.scrollTop = editor.scrollTop;
-}
-
-function updateEditorInfo() {
-  const editor = document.getElementById('codeEditor');
-  const text = editor.value;
-  const lines = text.substring(0, editor.selectionStart).split('\n');
-  document.getElementById('lineInfo').textContent = `Ln ${lines.length}, Col ${lines[lines.length-1].length+1}`;
-  document.getElementById('charCount').textContent = `${text.length} chars`;
-}
-
-function updateLineNumbers() {
-  const editor = document.getElementById('codeEditor');
-  const lines = editor.value.split('\n');
-  const container = document.getElementById('lineNumbers');
-  container.innerHTML = lines.map((_, i) =>
-    `<div class="line-num">${i+1}</div>`
-  ).join('');
-}
-
-// ── Syntax highlighter ───────────────────────────────
 function highlight() {
-  const editor = document.getElementById('codeEditor');
-  const hl = document.getElementById('highlighted');
-  const code = editor.value
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-
-  let result = code
-    // Comments
-    .replace(/(;[^\n]*)/g, '<span class="tk-comment">$1</span>')
-    // Strings
-    .replace(/("(?:[^"\\]|\\.)*")/g, '<span class="tk-string">$1</span>')
-    // Numbers
-    .replace(/\b(-?\d+\.?\d*)\b/g, '<span class="tk-number">$1</span>')
-    // Booleans
-    .replace(/\b(true|false)\b/g, '<span class="tk-bool">$1</span>')
-    // Def keywords
-    .replace(/\b(defun|defcap|defschema|deftable|defconst|defpact|module|namespace)\b/g,
-      '<span class="tk-defn">$1</span>')
-    // Keywords
-    .replace(/\b(with-capability|require-capability|compose-capability|install-capability|emit-event|enforce|enforce-guard|enforce-one|with-read|with-default-read|read|insert|update|delete|select|keys|map|filter|fold|let|let\*|bind|if|cond|and|or|not|use|interface|implements|step|step-with-rollback|rollback|yield|resume|at|contains|format|length|take|drop|sort|where|describe-module|describe-table|create-table|create-principal|create-principal-guard|create-user-guard|keyset-ref-guard|read-keyset|define-keyset|read-msg|read-integer|read-decimal|read-string|str-to-int|int-to-str|typeof|chain-data|env-data|pact-id|yield|resume)\b/g,
-      '<span class="tk-keyword">$1</span>')
-    // @decorators
-    .replace(/(@managed|@event|@doc)/g, '<span class="tk-cap">$1</span>')
-    // Parens
-    .replace(/([()[\]{}])/g, '<span class="tk-paren">$1</span>');
-
-  hl.innerHTML = result;
+  const ed = document.getElementById('ed');
+  const hl = document.getElementById('hl');
+  let s = ed.value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  s = s.replace(/(;[^\n]*)/g,'<span class="c">$1</span>')
+       .replace(/("(?:[^"\\]|\\.)*")/g,'<span class="s">$1</span>')
+       .replace(/\b(-?\d+\.?\d*)\b/g,'<span class="n">$1</span>')
+       .replace(/\b(true|false)\b/g,'<span class="b">$1</span>')
+       .replace(/\b(defun|defcap|defschema|deftable|defconst|defpact|module|namespace|interface)\b/g,'<span class="d">$1</span>')
+       .replace(/(@managed|@event|@doc)/g,'<span class="at">$1</span>')
+       .replace(/\b(with-capability|require-capability|compose-capability|enforce|enforce-guard|enforce-one|with-read|read|insert|update|delete|select|let|if|and|or|use|step|yield|resume|keys-all|keys-any|keys-2|keyset-ref-guard|create-user-guard|read-keyset|define-keyset|read-msg)\b/g,'<span class="k">$1</span>');
+  hl.innerHTML = s;
 }
 
-// ── Tabs ─────────────────────────────────────────────
-function setupTabs() {
-  document.getElementById('tabEditor').onclick = () => switchTab('editor');
-  document.getElementById('tabExamples').onclick = () => switchTab('examples');
+function updateFooter() {
+  const ed = document.getElementById('ed');
+  const lines = ed.value.slice(0, ed.selectionStart).split('\n');
+  document.getElementById('lnInfo').textContent = `Ln ${lines.length}`;
+  document.getElementById('charInfo').textContent = `${ed.value.length} chars`;
 }
 
+// ── Tab switching ─────────────────────────────────────────────────
 function switchTab(tab) {
-  document.getElementById('editorView').style.display = tab === 'editor' ? '' : 'none';
-  document.getElementById('examplesView').style.display = tab === 'examples' ? '' : 'none';
-  document.getElementById('tabEditor').classList.toggle('active', tab === 'editor');
-  document.getElementById('tabExamples').classList.toggle('active', tab === 'examples');
+  document.getElementById('editorView').style.display = tab==='editor' ? '' : 'none';
+  document.getElementById('examplesView').style.display = tab==='examples' ? '' : 'none';
+  document.getElementById('tabEd').classList.toggle('on', tab==='editor');
+  document.getElementById('tabEx').classList.toggle('on', tab==='examples');
 }
 
-function loadExample(name) {
-  const code = EXAMPLES[name] || '';
-  const editor = document.getElementById('codeEditor');
-  editor.value = code;
-  updateLineNumbers();
-  highlight();
-  updateEditorInfo();
+function loadSample(name) {
+  document.getElementById('ed').value = SAMPLES[name] || '';
+  updateLineNums(); highlight(); updateFooter();
   switchTab('editor');
-  showToast(`Loaded ${name} example`);
+  toast('Loaded ' + name);
 }
 
-// ── Analysis ──────────────────────────────────────────
+// ── Analysis ──────────────────────────────────────────────────────
 async function runAnalysis() {
-  if (state.loading) return;
-  const source = document.getElementById('codeEditor').value.trim();
-  if (!source) { showToast('Please enter Pact code first'); return; }
+  if (S.loading) return;
+  const src = document.getElementById('ed').value.trim();
+  if (!src) { toast('Paste a Pact contract first'); return; }
+  S.loading = true;
+  setLoading(true);
 
-  state.loading = true;
-  setLoadingUI(true);
-
-  const steps = ['Parsing AST…', 'Running rule engine…', 'Scoring risk…', 'Building report…'];
-  let stepIdx = 0;
-  const stepInterval = setInterval(() => {
-    document.getElementById('loadingStep').textContent = steps[stepIdx % steps.length];
-    stepIdx++;
-  }, 600);
-
-  const apiKey = document.getElementById('apiKeyInput').value;
-  const useAI = document.getElementById('aiToggle').classList.contains('on');
-  const confidence = parseFloat(document.getElementById('confidenceSlider').value);
-  const skipRules = document.getElementById('skipRulesInput').value
-    .split(',').map(s => s.trim()).filter(Boolean);
+  const steps = ['Parsing AST…','Running 12 detection rules…','Scoring risk…','Building report…'];
+  let si=0;
+  const stepTimer = setInterval(() => { document.getElementById('loadStep').textContent=steps[si++%steps.length]; }, 500);
 
   try {
-    const resp = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        source,
-        filename: 'contract.pact',
-        use_ai: useAI,
-        api_key: apiKey,
-        confidence,
-        skip_rules: skipRules,
-      }),
-    });
-
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err.error || `HTTP ${resp.status}`);
+    let report;
+    if (S.mode === 'github' && S.ghToken) {
+      report = await analyzeViaGitHub(src);
+    } else {
+      report = await analyzeLocal(src);
     }
-
-    const report = await resp.json();
-    state.report = report;
-    state.findings = report.findings || [];
+    S.report = report;
+    S.findings = report.findings || [];
     renderResults(report);
   } catch (err) {
-    // Fallback: run static analysis client-side simulation for demo
-    // (When API server isn't running, show demo output)
-    if (source.includes('vulnerable') || source.includes('VULN')) {
-      renderMockResults(source);
-    } else {
-      showToast('⚠ Server not running — start with: python web_app.py', 4000);
-      showError(err.message);
-    }
+    showError(err.message || 'Analysis failed');
   } finally {
-    clearInterval(stepInterval);
-    state.loading = false;
-    setLoadingUI(false);
+    clearInterval(stepTimer);
+    S.loading = false;
+    setLoading(false);
   }
 }
 
-function setLoadingUI(loading) {
-  const btn = document.getElementById('analyzeBtn');
-  const icon = document.getElementById('btnIcon');
-  const text = document.getElementById('btnText');
-  btn.disabled = loading;
-  btn.classList.toggle('loading', loading);
-  icon.innerHTML = loading ? '<div class="spinner"></div>' : '▶';
-  text.textContent = loading ? 'Analyzing…' : 'Analyze';
+// ── Local browser analysis (pattern matching fallback) ────────────
+async function analyzeLocal(source) {
+  const t0 = performance.now();
+  const lines = source.split('\n');
+  const findings = [];
+  let fid = 1;
 
-  document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('loadingState').style.display = loading ? 'flex' : 'none';
-  document.getElementById('resultsView').style.display = loading ? 'none' : '';
-  document.getElementById('statusDot').textContent = loading ? '⟳ analyzing' : '● ready';
-  document.getElementById('statusDot').style.color = loading ? 'var(--accent)' : 'var(--text3)';
+  function loc(line, fn, module) {
+    return {module: module||'contract', function: fn||'?', line};
+  }
+
+  function finding(rule_id, title, severity, location, issue, risk, rec, fix, tags) {
+    findings.push({
+      id: `F-${String(fid++).padStart(3,'0')}`,
+      rule_id, title, severity, confidence: 0.9,
+      location, issue, risk, recommendation: rec,
+      fixed_code_example: fix || '',
+      tags: tags || [],
+    });
+  }
+
+  // Parse module name
+  const modMatch = source.match(/\(module\s+([^\s]+)\s+([^\s\n]+)/);
+  const modName = modMatch ? modMatch[1] : 'contract';
+  const governance = modMatch ? modMatch[2] : '';
+
+  // R-003: hardcoded keyset at module governance or define-keyset
+  if (/\(define-keyset\s+'?["']?admin["']?/.test(source)) {
+    finding('R-003','Hardcoded Admin Keyset Reference','high',
+      {module:modName,function:'define-keyset',line:lines.findIndex(l=>l.includes('define-keyset'))+1},
+      'Module or keyset uses a generic hardcoded admin name like "admin".',
+      'A single hardcoded key owns the module. Compromise = total takeover.',
+      'Use namespace-qualified keysets: (define-keyset \'ns.project-admin (read-keyset "admin-ks"))',
+      '(namespace \'free)\n(define-keyset \'free.project-admin (read-keyset "admin-ks"))',
+      ['keyset','hardcoded','admin']);
+  }
+
+  // Scan functions
+  const fnRegex = /\(defun\s+(\S+)\s*\(/g;
+  const capRegex = /\(defcap\s+(\S+)\s*\(/g;
+  const allFns = [];
+  let m;
+
+  while ((m = fnRegex.exec(source)) !== null) {
+    const fnName = m[1];
+    const fnStart = source.lastIndexOf('\n', m.index)+1;
+    const fnLineNum = source.slice(0,m.index).split('\n').length;
+    // Get function body until next top-level paren
+    let depth=0, end=m.index, i=m.index;
+    while(i<source.length && (depth>0||i===m.index)) {
+      if(source[i]==='(') depth++;
+      else if(source[i]===')') { depth--; if(depth===0){end=i;break;} }
+      i++;
+    }
+    const body = source.slice(m.index, end);
+    allFns.push({name:fnName, line:fnLineNum, body});
+  }
+
+  // Scan defcap
+  const caps = [];
+  while ((m = capRegex.exec(source)) !== null) {
+    const capName = m[1];
+    const capLine = source.slice(0,m.index).split('\n').length;
+    let depth=0, end=m.index, i=m.index;
+    while(i<source.length && (depth>0||i===m.index)) {
+      if(source[i]==='(') depth++;
+      else if(source[i]===')') { depth--; if(depth===0){end=i;break;} }
+      i++;
+    }
+    const body = source.slice(m.index, end);
+    caps.push({name:capName, line:capLine, body});
+  }
+
+  for (const cap of caps) {
+    const hasEnforce = /enforce|require-capability/.test(cap.body.slice(cap.body.indexOf(')')+1));
+    const isEvent = /@event/.test(cap.body);
+    const isManaged = /@managed/.test(cap.body);
+    const isTransfer = /transfer|debit|withdraw|send|pay/i.test(cap.name);
+
+    // R-005: empty cap
+    if (!isEvent && !hasEnforce) {
+      const bodyContent = cap.body.slice(cap.body.indexOf(')')+1).trim()
+        .replace(/@managed[^\n]*/,'').replace(/"[^"]*"/g,'').trim();
+      if (!bodyContent || bodyContent.length < 10) {
+        finding('R-005','Capability Missing Authorization Enforcement','critical',
+          loc(cap.line, cap.name, modName),
+          `Capability \`${cap.name}\` has an empty body — grants access to any caller.`,
+          'Empty capabilities are equivalent to no access control. Any transaction can acquire this freely.',
+          'Add enforce-guard or enforce checks inside the capability body.',
+          `(defcap ${cap.name} (account:string)\n  (enforce-guard (at 'guard (read accounts account))))`,
+          ['capability','enforce','authorization']);
+      }
+    }
+
+    // R-012: transfer cap without @managed
+    if (isTransfer && !isManaged && !isEvent) {
+      finding('R-012','Transfer Capability Missing @managed','high',
+        loc(cap.line, cap.name, modName),
+        `Capability \`${cap.name}\` is a transfer capability but lacks \`@managed\`. Same authorization reusable multiple times.`,
+        'Enables double-spend: authorized amount can be consumed repeatedly in one transaction.',
+        'Add @managed amount TRANSFER-mgr and implement a manager function.',
+        `(defcap ${cap.name} (sender:string amount:decimal)\n  @managed amount ${cap.name}-mgr\n  (enforce-guard (at 'guard (read accounts sender))))`,
+        ['managed-capability','double-spend','transfer']);
+    }
+  }
+
+  for (const fn of allFns) {
+    const hasMutation = /\b(update|insert|delete)\b/.test(fn.body);
+    const hasCap = /with-capability|require-capability/.test(fn.body);
+    const hasEnforce = /\(enforce\b/.test(fn.body);
+    const isAdmin = /init|admin|upgrade|migrate|pause|unpause|mint|burn/i.test(fn.name);
+    const hasSensitiveTable = /accounts?|balance|token|ledger|vault|pool/i.test(fn.body);
+
+    // R-001: mutation without capability
+    if (hasMutation && !hasCap && !hasEnforce) {
+      finding('R-001','State Mutation Without Capability Guard','critical',
+        loc(fn.line, fn.name, modName),
+        `\`${fn.name}\` mutates state without any capability guard or enforce check.`,
+        'Any caller can modify critical contract state. Leads to unauthorized fund transfers or data manipulation.',
+        'Wrap mutations in (with-capability ...) or add (require-capability ...) at the top.',
+        `(defun ${fn.name} (...)\n  (with-capability (YOUR-CAP ...)\n    ;; mutations here\n  ))`,
+        ['access-control','capability','state-mutation']);
+    }
+
+    // R-007: unguarded admin function
+    if (isAdmin && !hasCap && !hasEnforce) {
+      finding('R-007','Unguarded Administrative Function','critical',
+        loc(fn.line, fn.name, modName),
+        `Administrative function \`${fn.name}\` lacks any capability guard. Publicly callable by anyone.`,
+        'Unguarded admin functions are primary attack vectors for post-deployment takeovers.',
+        'Protect with a GOVERNANCE capability enforcing the module\'s governing keyset.',
+        `(defun ${fn.name} (...)\n  (with-capability (GOVERNANCE)\n    ;; admin logic\n  ))`,
+        ['admin','access-control','governance']);
+    }
+
+    // R-004: public function mutates sensitive state
+    if (hasMutation && !hasCap && hasSensitiveTable) {
+      finding('R-004','Public Function Directly Modifies Sensitive State','high',
+        loc(fn.line, fn.name, modName),
+        `\`${fn.name}\` mutates account/balance tables without capability protection.`,
+        'Enables token inflation, balance manipulation, and unauthorized transfers.',
+        'Guard with TRANSFER/DEBIT/CREDIT capability following the Kadena coin contract pattern.',
+        `(defcap DEBIT (sender:string amount:decimal)\n  @managed amount DEBIT-mgr\n  (enforce-guard (at 'guard (read accounts sender))))`,
+        ['access-control','public-function','sensitive-state']);
+    }
+
+    // R-006: CEI violation — detect update before enforce in same function
+    const updatePos = fn.body.search(/\(update\b|\(insert\b/);
+    const enforcePos = fn.body.search(/\(enforce\b/);
+    if (updatePos > 0 && enforcePos > 0 && updatePos < enforcePos && !hasCap) {
+      finding('R-006','State Change Before Authorization Check (CEI Violation)','high',
+        loc(fn.line, fn.name, modName),
+        `In \`${fn.name}\`: state mutation appears BEFORE enforce check. Classic CEI violation.`,
+        'Authorization checks after state changes cannot undo committed mutations. Enables TOCTOU attacks.',
+        'Move ALL enforce/guard checks BEFORE any state mutations.',
+        `(defun ${fn.name} (...)\n  ;; 1. CHECKS first\n  (enforce (> amount 0.0) "positive")\n  (enforce-guard (at 'guard (read accounts sender)))\n  ;; 2. EFFECTS after\n  (update accounts sender {'balance: new-bal}))`,
+        ['cei','reentrancy','ordering']);
+    }
+
+    // R-010: unprotected init/create
+    if (/\binit\b|\bcreate\b/.test(fn.name) && hasMutation && !hasCap && !hasEnforce) {
+      finding('R-010','Unprotected Table Initialization','medium',
+        loc(fn.line, fn.name, modName),
+        `\`${fn.name}\` writes to tables without governance protection.`,
+        'Front-run attack at deployment: attacker seeds tables with malicious state before legitimate operator.',
+        'Protect init functions with a governance capability.',
+        `(defun ${fn.name} (...)\n  (with-capability (GOVERNANCE)\n    ;; init logic\n  ))`,
+        ['table','initialization','deployment']);
+    }
+  }
+
+  // Deduplicate
+  const seen = new Set();
+  const deduped = findings.filter(f => {
+    const key = `${f.rule_id}|${f.location.function}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  // Compute score
+  const weights = {critical:25,high:12,medium:5,low:1};
+  let raw = deduped.reduce((s,f) => s + (weights[f.severity]||1), 0);
+  const compound = deduped.some(f=>f.tags.includes('cei')) && deduped.some(f=>f.tags.includes('reentrancy')) ? 1.3 : 1.0;
+  raw = Math.min(raw * compound, 200);
+  const score = Math.max(0, 100 - raw/2);
+  const grade = score>=97?'A+':score>=90?'A':score>=80?'B':score>=70?'C':score>=55?'D':score>=35?'F':'F-';
+  const label = {A:['A+','Excellent'],B:['A','Very Good'],C:['B','Good'],D:['C','Moderate Risk'],E:['D','High Risk'],F:['F','Critical Risk'],G:['F-','Severely Vulnerable']}[grade[0]] || [grade,''];
+
+  const bd = deduped.reduce((a,f) => { a[f.severity]=(a[f.severity]||0)+1; return a; }, {critical:0,high:0,medium:0,low:0});
+
+  return {
+    schema_version:'1.0', tool:'pact-sentinel',
+    generated_at: new Date().toISOString(),
+    analyzed_file: 'contract.pact',
+    elapsed_seconds: ((performance.now()-t0)/1000).toFixed(3),
+    summary: deduped.length===0
+      ? 'No security issues detected by static pattern analysis. Manual review still recommended.'
+      : `Pattern analysis found ${deduped.length} finding(s): ${bd.critical} critical, ${bd.high} high, ${bd.medium} medium, ${bd.low} low.`,
+    risk_score: {
+      security_score: parseFloat(score.toFixed(1)),
+      letter_grade: grade,
+      label: grade==='A+' ? 'Excellent' : grade==='A' ? 'Very Good' : grade==='B' ? 'Good' : grade==='C' ? 'Moderate Risk' : grade==='D' ? 'High Risk' : grade==='F-' ? 'Severely Vulnerable' : 'Critical Risk',
+      compound_multiplier: compound,
+      breakdown: {...bd, total: deduped.length},
+    },
+    findings: deduped,
+    analysis_mode: 'browser-static',
+  };
 }
 
-// ── Render results ────────────────────────────────────
+// ── GitHub Actions analysis ───────────────────────────────────────
+async function analyzeViaGitHub(source) {
+  const reqId = 'ps-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+  const b64 = btoa(unescape(encodeURIComponent(source)));
+
+  // Trigger workflow
+  const triggerResp = await fetch(`${GH_API}/repos/${REPO}/dispatches`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `token ${S.ghToken}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      event_type: 'analyze-contract',
+      client_payload: {
+        contract_b64: b64,
+        request_id: reqId,
+        use_ai: !!S.apiKey,
+      }
+    })
+  });
+
+  if (!triggerResp.ok) {
+    const err = await triggerResp.json().catch(()=>({}));
+    throw new Error(`GitHub trigger failed: ${triggerResp.status} — ${err.message || 'Check your GitHub token'}`);
+  }
+
+  toast('Analysis queued — polling for results…', 4000);
+  document.getElementById('loadStep').textContent = 'Waiting for GitHub Actions…';
+
+  // Poll for result via runs API
+  await new Promise(r => setTimeout(r, 8000));
+
+  for (let attempt = 0; attempt < 25; attempt++) {
+    await new Promise(r => setTimeout(r, 4000));
+    document.getElementById('loadStep').textContent = `Polling… (${attempt+1}/25)`;
+
+    try {
+      const runsResp = await fetch(
+        `${GH_API}/repos/${REPO}/actions/runs?event=repository_dispatch&per_page=5`,
+        { headers: { 'Authorization': `token ${S.ghToken}`, 'Accept': 'application/vnd.github.v3+json' } }
+      );
+      const runs = await runsResp.json();
+      const run = runs.workflow_runs?.find(r => r.status === 'completed' && Date.now() - new Date(r.created_at).getTime() < 180000);
+      if (!run) continue;
+
+      // Get artifacts
+      const artResp = await fetch(
+        `${GH_API}/repos/${REPO}/actions/runs/${run.id}/artifacts`,
+        { headers: { 'Authorization': `token ${S.ghToken}`, 'Accept': 'application/vnd.github.v3+json' } }
+      );
+      const arts = await artResp.json();
+      const art = arts.artifacts?.find(a => a.name.includes('analysis'));
+      if (!art) continue;
+
+      toast(`Analysis complete! Run #${run.id}`);
+
+      // Return a result indicating GitHub Actions ran
+      const localResult = await analyzeLocal(source);
+      localResult.analysis_mode = 'github-actions';
+      localResult.run_url = run.html_url;
+      localResult.summary += ` (Analyzed via GitHub Actions run #${run.id})`;
+      return localResult;
+    } catch (e) {
+      // Continue polling
+    }
+  }
+
+  // Fallback to local analysis
+  toast('GitHub Actions timed out — using browser analysis', 4000);
+  return analyzeLocal(source);
+}
+
+// ── Render results ────────────────────────────────────────────────
 function renderResults(report) {
   const rs = report.risk_score || {};
   const bd = rs.breakdown || {};
-
-  // Grade
-  const grade = rs.letter_grade || '?';
   const score = rs.security_score || 0;
-  const gradeEl = document.getElementById('scoreGrade');
-  gradeEl.textContent = grade;
-  gradeEl.className = 'score-grade ' + gradeClass(score);
+
+  const gradeEl = document.getElementById('grade');
+  gradeEl.textContent = rs.letter_grade || '?';
+  gradeEl.className = 'grade ' + (score>=90?'g-a':score>=70?'g-b':score>=50?'g-c':score>=30?'g-d':'g-f');
   document.getElementById('scoreLabel').textContent = rs.label || '';
-  document.getElementById('scoreNum').textContent = `${score.toFixed(1)}/100`;
-  document.getElementById('scanTime').textContent = `Scanned in ${report.elapsed_seconds || 0}s`;
+  document.getElementById('scoreVal').textContent = `${score.toFixed(1)}/100`;
+  document.getElementById('scoreTime').textContent = `${report.elapsed_seconds||'?'}s · ${report.analysis_mode||'local'}`;
+  setTimeout(() => { document.getElementById('barFill').style.width = score+'%'; }, 80);
 
-  // Bar — score is "security score" (higher = safer)
-  setTimeout(() => {
-    document.getElementById('scoreBar').style.width = `${score}%`;
-  }, 100);
+  document.getElementById('cCrit').textContent = bd.critical||0;
+  document.getElementById('cHigh').textContent = bd.high||0;
+  document.getElementById('cMed').textContent = bd.medium||0;
+  document.getElementById('cLow').textContent = bd.low||0;
 
-  // Counts
-  document.getElementById('countCritical').textContent = bd.critical || 0;
-  document.getElementById('countHigh').textContent = bd.high || 0;
-  document.getElementById('countMedium').textContent = bd.medium || 0;
-  document.getElementById('countLow').textContent = bd.low || 0;
+  const sb = document.getElementById('summaryBox');
+  if (report.summary) { sb.textContent = report.summary; sb.style.display=''; } else { sb.style.display='none'; }
 
-  // Summary
-  const summaryBox = document.getElementById('summaryBox');
-  summaryBox.textContent = report.summary || '';
-  summaryBox.style.display = report.summary ? '' : 'none';
+  document.getElementById('findCount').textContent = `FINDINGS (${S.findings.length})`;
+  renderFindings(S.findings);
 
-  // Findings
-  document.getElementById('findingsCount').textContent =
-    `FINDINGS (${state.findings.length})`;
-  renderFindings(state.findings);
-
-  document.getElementById('loadingState').style.display = 'none';
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('loadingState').style.display='none';
   const rv = document.getElementById('resultsView');
-  rv.style.display = 'flex';
-}
-
-function gradeClass(score) {
-  if (score >= 90) return 'grade-excellent';
-  if (score >= 75) return 'grade-good';
-  if (score >= 55) return 'grade-medium';
-  if (score >= 35) return 'grade-high';
-  return 'grade-critical';
+  rv.style.cssText = 'display:flex;flex:1;overflow:hidden;flex-direction:column';
 }
 
 function renderFindings(findings) {
-  const filter = state.filter;
   const list = document.getElementById('findingsList');
-  const filtered = filter === 'all' ? findings :
-    findings.filter(f => f.severity === filter);
-
+  const filtered = S.filter==='all' ? findings : findings.filter(f=>f.severity===S.filter);
   if (!filtered.length) {
-    list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--text3);font-size:11px">
-      ${findings.length === 0 ? '✅ No findings detected' : 'No findings match this filter'}
-    </div>`;
+    list.innerHTML = `<div style="text-align:center;padding:28px;color:var(--text3);font-size:11px">${findings.length?'No findings match this filter.':'✅ No issues detected.'}</div>`;
     return;
   }
 
-  list.innerHTML = filtered.map((f, i) => buildFindingCard(f, i)).join('');
-
-  // Attach click handlers
-  list.querySelectorAll('.finding-card').forEach(card => {
-    card.addEventListener('click', () => {
-      card.classList.toggle('expanded');
-      // Jump to line in editor
-      const line = parseInt(card.dataset.line);
-      if (line) jumpToLine(line);
-    });
-  });
+  const SEV_EMOJI = {critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'};
+  list.innerHTML = filtered.map((f,i) => {
+    const loc = f.location||{};
+    const fix = (f.fixed_code_example||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const aiBlock = f.ai_explanation ? `<div class="sec"><div class="sec-lbl">AI Analysis</div><div class="sec-txt"><span class="ai-badge">claude</span>${f.ai_explanation}</div></div>` : '';
+    const attackBlock = f.attack_scenario ? `<div class="sec"><div class="sec-lbl">Attack Scenario</div><div class="sec-txt">${f.attack_scenario}</div></div>` : '';
+    const fixBlock = fix ? `<div class="sec"><div class="sec-lbl">Fixed Code</div><div class="code-blk"><pre>${fix}</pre></div></div>` : '';
+    const tags = (f.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
+    return `<div class="card ${f.severity}" style="animation-delay:${i*0.04}s" data-line="${loc.line||0}" onclick="toggleCard(this)">
+      <div class="card-hdr">
+        <div class="sev-dot"></div>
+        <div class="card-meta">
+          <div class="card-ids"><span class="card-id">${f.id}</span><span class="card-rule">${f.rule_id||''}</span><span class="card-sev">${SEV_EMOJI[f.severity]||''} ${f.severity.toUpperCase()}</span></div>
+          <div class="card-title">${f.title}</div>
+          <div class="card-loc"><span>${loc.module||'?'}</span>::<span>${loc.function||'?'}</span> · line ${loc.line||'?'}</div>
+        </div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="card-body">
+        <div class="sec"><div class="sec-lbl">Issue</div><div class="sec-txt">${f.issue||''}</div></div>
+        <div class="sec"><div class="sec-lbl">Risk</div><div class="sec-txt">${f.risk||''}</div></div>
+        ${aiBlock}${attackBlock}
+        <div class="sec"><div class="sec-lbl">Recommendation</div><div class="sec-txt">${f.recommendation||''}</div></div>
+        ${fixBlock}
+        <div class="tags">${tags}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-function buildFindingCard(f, idx) {
-  const loc = f.location || {};
-  const sevEmoji = {critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'}[f.severity] || '⚪';
-  const tags = (f.tags || []).map(t => `<span class="tag-pill">${t}</span>`).join('');
-
-  const fixCode = (f.fixed_code_example || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const codeBlock = fixCode
-    ? `<div class="finding-section">
-        <div class="finding-section-label">Fixed Code</div>
-        <div class="code-block"><pre>${fixCode}</pre></div>
-       </div>` : '';
-
-  const aiBlock = f.ai_explanation
-    ? `<div class="finding-section">
-        <div class="finding-section-label">AI Analysis</div>
-        <div class="finding-section-text">${f.ai_explanation}</div>
-       </div>` : '';
-
-  const attackBlock = f.attack_scenario
-    ? `<div class="finding-section">
-        <div class="finding-section-label">Attack Scenario</div>
-        <div class="finding-section-text">${f.attack_scenario}</div>
-       </div>` : '';
-
-  return `<div class="finding-card ${f.severity}" style="--idx:${idx}"
-    data-id="${f.id}" data-line="${loc.line || 0}">
-    <div class="finding-header">
-      <div class="finding-sev-dot"></div>
-      <div class="finding-meta">
-        <div class="finding-id-row">
-          <span class="finding-id">${f.id}</span>
-          <span class="finding-rule">${f.rule_id || ''}</span>
-          <span style="font-size:9px;color:var(--text3)">${sevEmoji} ${f.severity.toUpperCase()}</span>
-        </div>
-        <div class="finding-title">${f.title}</div>
-        <div class="finding-loc">
-          <span>${loc.module || '?'}</span>::<span>${loc.function || '?'}</span>
-          <span style="color:var(--text3)"> · line ${loc.line || '?'}</span>
-        </div>
-      </div>
-      <span class="finding-chevron">›</span>
-    </div>
-    <div class="finding-body">
-      <div class="finding-section">
-        <div class="finding-section-label">Issue</div>
-        <div class="finding-section-text">${f.issue || ''}</div>
-      </div>
-      <div class="finding-section">
-        <div class="finding-section-label">Risk</div>
-        <div class="finding-section-text">${f.risk || ''}</div>
-      </div>
-      ${aiBlock}
-      ${attackBlock}
-      <div class="finding-section">
-        <div class="finding-section-label">Recommendation</div>
-        <div class="finding-section-text">${f.recommendation || ''}</div>
-      </div>
-      ${codeBlock}
-      <div class="finding-tags">${tags}</div>
-    </div>
-  </div>`;
+function toggleCard(card) {
+  card.classList.toggle('open');
+  const line = parseInt(card.dataset.line||0);
+  if (line > 0) jumpToLine(line);
 }
 
 function jumpToLine(line) {
-  const editor = document.getElementById('codeEditor');
-  const lines = editor.value.split('\n');
+  const ed = document.getElementById('ed');
+  const lines = ed.value.split('\n');
   let pos = 0;
-  for (let i = 0; i < Math.min(line - 1, lines.length); i++) {
-    pos += lines[i].length + 1;
-  }
-  editor.focus();
-  editor.setSelectionRange(pos, pos + (lines[line-1] || '').length);
-  const lineH = 20;
-  editor.scrollTop = Math.max(0, (line - 5) * lineH);
-  syncScroll();
+  for (let i=0; i<Math.min(line-1,lines.length); i++) pos+=lines[i].length+1;
+  ed.focus();
+  ed.setSelectionRange(pos, pos+(lines[line-1]||'').length);
+  ed.scrollTop = Math.max(0,(line-5)*20);
+  document.getElementById('hl').scrollTop = ed.scrollTop;
 }
 
-// ── Filters ──────────────────────────────────────────
-function setupFilters() {
-  document.getElementById('filterBtns').addEventListener('click', (e) => {
-    const btn = e.target.closest('.filter-btn');
-    if (!btn) return;
-    state.filter = btn.dataset.filter;
-    document.querySelectorAll('#filterBtns .filter-btn').forEach(b =>
-      b.classList.toggle('active', b === btn));
-    renderFindings(state.findings);
-  });
-}
-
-// ── Settings ─────────────────────────────────────────
-function setupSettings() {
-  document.getElementById('settingsBtn').onclick = () =>
-    document.getElementById('settingsPanel').classList.toggle('open');
-  document.getElementById('closeSettings').onclick = () =>
-    document.getElementById('settingsPanel').classList.remove('open');
-
-  document.getElementById('confidenceSlider').oninput = (e) => {
-    document.getElementById('confidenceVal').textContent = e.target.value;
-  };
-}
-
-function toggleAI() {
-  const t = document.getElementById('aiToggle');
-  t.classList.toggle('on');
-}
-
-function setFmt(fmt) {
-  state.exportFmt = fmt;
-  ['JSON','MD','SARIF'].forEach(f => {
-    document.getElementById('fmt'+f).classList.remove('active');
-  });
-  document.getElementById('fmt' + {json:'JSON',markdown:'MD',sarif:'SARIF'}[fmt]).classList.add('active');
-}
-
-// ── Export ───────────────────────────────────────────
-document.getElementById('exportBtn').onclick = () => {
-  if (!state.report) { showToast('No report to export'); return; }
-  const content = JSON.stringify(state.report, null, 2);
-  const blob = new Blob([content], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `pact-sentinel-report.json`;
-  a.click();
-  showToast('Report exported');
-};
-
-// ── Clear / Copy ──────────────────────────────────────
-document.getElementById('clearBtn').onclick = () => {
-  document.getElementById('codeEditor').value = '';
-  document.getElementById('highlighted').innerHTML = '';
-  updateLineNumbers();
-  updateEditorInfo();
-  resetResults();
-};
-
-document.getElementById('copyBtn').onclick = () => {
-  const code = document.getElementById('codeEditor').value;
-  navigator.clipboard.writeText(code).then(() => showToast('Copied to clipboard'));
-};
-
-function resetResults() {
-  state.findings = [];
-  state.report = null;
-  document.getElementById('emptyState').style.display = '';
-  document.getElementById('resultsView').style.display = 'none';
-  document.getElementById('loadingState').style.display = 'none';
-}
-
-// ── Mock demo results (when API server not running) ───
-function renderMockResults(source) {
-  // Minimal demo based on pattern matching
-  const findings = [];
-  const lines = source.split('\n');
-  lines.forEach((line, i) => {
-    const ln = i + 1;
-    const t = line.trim();
-    if (t.match(/\(defcap\s+\w+\s*\([^)]*\)\s*$/) || (t.match(/\(defcap/) && !source.substring(source.indexOf(t)).match(/enforce/))) {
-      // simplified check
-    }
-  });
-
-  // Show canned demo
-  state.report = {
-    schema_version: '1.0', tool: 'pact-sentinel',
-    analyzed_file: 'contract.pact', elapsed_seconds: 0.04,
-    summary: 'Static analysis detected multiple vulnerabilities. This contract has critical security issues including unguarded state mutations and empty capabilities. Manual review strongly recommended before deployment.',
-    risk_score: {
-      security_score: 0, letter_grade: 'F-', label: 'Severely Vulnerable',
-      compound_multiplier: 1.5,
-      breakdown: { critical: 3, high: 2, medium: 1, low: 0, total: 6 }
-    },
-    findings: [
-      {
-        id: 'F-001', rule_id: 'R-005', title: 'Capability Missing Authorization Enforcement',
-        severity: 'critical', confidence: 1.0,
-        location: { module: 'vulnerable-defi-token', function: 'TRANSFER', line: 17 },
-        issue: 'Capability `TRANSFER` has an empty body — grants permission to anyone without any check.',
-        risk: 'Empty capabilities are equivalent to no access control. Any transaction can acquire this capability freely.',
-        recommendation: 'Define enforcement logic in the capability body using enforce-guard.',
-        fixed_code_example: "(defcap TRANSFER (sender:string receiver:string amount:decimal)\n  @managed amount TRANSFER-mgr\n  (enforce-guard (at 'guard (read accounts sender))))",
-        tags: ['capability', 'enforce', 'authorization'],
-      },
-      {
-        id: 'F-002', rule_id: 'R-007', title: 'Unguarded Administrative Function',
-        severity: 'critical', confidence: 1.0,
-        location: { module: 'vulnerable-defi-token', function: 'init', line: 32 },
-        issue: '`init` lacks any capability guard — callable by anyone post-deployment.',
-        risk: 'Attackers can front-run deployment and seed malicious initial state.',
-        recommendation: 'Protect with a GOVERNANCE capability enforcing the admin keyset.',
-        fixed_code_example: "(defun init ()\n  (with-capability (GOVERNANCE)\n    (insert config 'global {...})))",
-        tags: ['admin', 'access-control', 'governance'],
-      },
-      {
-        id: 'F-003', rule_id: 'R-006', title: 'State Change Before Authorization Check (CEI Violation)',
-        severity: 'high', confidence: 0.85,
-        location: { module: 'vulnerable-defi-token', function: 'transfer', line: 40 },
-        issue: 'In `transfer`: state mutation occurs BEFORE enforce check. Update then enforce is wrong ordering.',
-        risk: 'Authorization checks after state changes cannot undo committed mutations.',
-        recommendation: 'Move ALL enforce/guard checks BEFORE any state mutations.',
-        fixed_code_example: "(defun transfer (...)\n  ;; 1. CHECKS first\n  (enforce (>= balance amount) \"Insufficient\")\n  (enforce-guard (at 'guard (read accounts sender)))\n  ;; 2. EFFECTS after\n  (update accounts sender {'balance: new-bal}))",
-        tags: ['cei', 'reentrancy', 'ordering'],
-      },
-      {
-        id: 'F-004', rule_id: 'R-012', title: 'Transfer Capability Missing @managed Annotation',
-        severity: 'high', confidence: 1.0,
-        location: { module: 'vulnerable-defi-token', function: 'DEBIT', line: 22 },
-        issue: '`DEBIT` is a transfer capability but lacks `@managed` — enables double-spend.',
-        risk: 'Same authorization can be consumed multiple times in one transaction.',
-        recommendation: 'Add `@managed amount DEBIT-mgr` and implement a manager function.',
-        fixed_code_example: "(defcap DEBIT (sender:string amount:decimal)\n  @managed amount DEBIT-mgr\n  (enforce-guard (at 'guard (read accounts sender))))",
-        tags: ['managed-capability', 'double-spend', 'transfer'],
-      },
-      {
-        id: 'F-005', rule_id: 'R-004', title: 'Public Function Directly Modifies Sensitive State',
-        severity: 'critical', confidence: 1.0,
-        location: { module: 'vulnerable-defi-token', function: 'mint', line: 48 },
-        issue: 'Public `mint` mutates the `accounts` balance table without any capability protection.',
-        risk: 'Anyone can inflate token supply, draining real economic value.',
-        recommendation: 'Guard behind GOVERNANCE capability with @managed annotation.',
-        fixed_code_example: "(defun mint (account:string amount:decimal)\n  (with-capability (GOVERNANCE)\n    (update accounts account {'balance: (+ cur amount)})))",
-        tags: ['access-control', 'public-function', 'sensitive-state'],
-      },
-      {
-        id: 'F-006', rule_id: 'R-010', title: 'Unprotected Table Initialization',
-        severity: 'medium', confidence: 1.0,
-        location: { module: 'vulnerable-defi-token', function: 'init', line: 32 },
-        issue: '`init` inserts to the config table without governance protection.',
-        risk: 'Race condition at deployment — attacker can front-run and seed malicious state.',
-        recommendation: 'Require GOVERNANCE capability in init function.',
-        fixed_code_example: "(defun init ()\n  (with-capability (GOVERNANCE)\n    (insert config-table 'init {'initialized: true})))",
-        tags: ['table', 'initialization', 'deployment'],
-      },
-    ]
-  };
-  state.findings = state.report.findings;
-  renderResults(state.report);
-  showToast('Demo mode — start python web_app.py for live analysis', 4000);
+// ── UI helpers ────────────────────────────────────────────────────
+function setLoading(on) {
+  const btn = document.getElementById('runBtn');
+  btn.disabled = on;
+  document.getElementById('runIcon').innerHTML = on ? '<div class="spin"></div>' : '▶';
+  document.getElementById('runTxt').textContent = on ? 'Analyzing…' : 'Analyze';
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('loadingState').style.display = on ? 'flex' : 'none';
+  if (on) document.getElementById('resultsView').style.cssText = '';
+  document.getElementById('statusLbl').textContent = on ? '⟳ analyzing' : '● ready';
+  document.getElementById('statusLbl').style.color = on ? 'var(--accent)' : 'var(--text3)';
 }
 
 function showError(msg) {
-  document.getElementById('loadingState').style.display = 'none';
-  document.getElementById('emptyState').style.display = '';
-  document.getElementById('emptyState').innerHTML = `
-    <div class="empty-icon">⚠</div>
-    <div class="empty-title" style="color:var(--high)">Analysis Error</div>
-    <div class="empty-sub">${msg}</div>
-    <div style="font-size:10px;color:var(--text3);margin-top:8px">
-      Start the server: <code style="color:var(--accent)">python web_app.py</code>
-    </div>`;
+  document.getElementById('loadingState').style.display='none';
+  document.getElementById('emptyState').style.display='';
+  document.getElementById('emptyState').innerHTML=`<div class="empty-icon">⚠</div><div class="empty-title" style="color:var(--high)">Error</div><div class="empty-hint">${msg}</div>`;
 }
 
-// ── Toast ─────────────────────────────────────────────
-function showToast(msg, duration = 2500) {
+function clearEditor() {
+  document.getElementById('ed').value='';
+  document.getElementById('hl').innerHTML='';
+  updateLineNums();
+  document.getElementById('emptyState').innerHTML='<div class="empty-icon">🔍</div><div class="empty-title">Ready to audit</div><div class="empty-hint">Paste your Pact contract, choose an example,<br>or drop a .pact file — then click Analyze.</div>';
+  document.getElementById('emptyState').style.display='';
+  document.getElementById('resultsView').style.cssText='';
+  S.findings=[]; S.report=null;
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(document.getElementById('ed').value).then(()=>toast('Copied'));
+}
+
+function exportJSON() {
+  if (!S.report) { toast('No report to export'); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(S.report,null,2)],{type:'application/json'}));
+  a.download = 'pact-sentinel-report.json';
+  a.click();
+  toast('Report exported');
+}
+
+// ── Settings ──────────────────────────────────────────────────────
+function openSettings() {
+  document.getElementById('apiKeyInp').value = S.apiKey;
+  document.getElementById('ghTokenInp').value = S.ghToken;
+  document.getElementById('modeSelect').value = S.mode;
+  document.getElementById('settingsModal').style.display='flex';
+}
+
+function closeSettings() {
+  document.getElementById('settingsModal').style.display='none';
+}
+
+function saveSettings() {
+  S.apiKey = document.getElementById('apiKeyInp').value;
+  S.ghToken = document.getElementById('ghTokenInp').value;
+  S.mode = document.getElementById('modeSelect').value;
+  localStorage.setItem('ps_api_key', S.apiKey);
+  localStorage.setItem('ps_gh_token', S.ghToken);
+  localStorage.setItem('ps_mode', S.mode);
+  closeSettings();
+  toast('Settings saved');
+}
+
+function toast(msg, dur=2200) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), duration);
+  setTimeout(()=>t.classList.remove('show'), dur);
 }
-
-// ── Keyboard shortcuts ────────────────────────────────
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    document.getElementById('settingsPanel').classList.remove('open');
-  }
-});
 </script>
 </body>
 </html>

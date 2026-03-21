@@ -1,0 +1,195 @@
+name: 🔍 Live Analysis API
+
+on:
+  repository_dispatch:
+    types: [analyze-contract]
+  workflow_dispatch:
+    inputs:
+      contract_source:
+        description: 'Pact contract source code (base64 encoded)'
+        required: true
+      request_id:
+        description: 'Unique request ID'
+        required: true
+      use_ai:
+        description: 'Enable AI enrichment'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: Analyze Contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Decode and analyze contract
+        id: analyze
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          # Extract inputs from repository_dispatch or workflow_dispatch
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            CONTRACT_B64="${{ github.event.client_payload.contract_b64 }}"
+            REQUEST_ID="${{ github.event.client_payload.request_id }}"
+            USE_AI="${{ github.event.client_payload.use_ai }}"
+          else
+            CONTRACT_B64="${{ github.event.inputs.contract_source }}"
+            REQUEST_ID="${{ github.event.inputs.request_id }}"
+            USE_AI="${{ github.event.inputs.use_ai }}"
+          fi
+
+          echo "Request ID: $REQUEST_ID"
+          echo "AI enabled: $USE_AI"
+
+          # Write contract to temp file
+          echo "$CONTRACT_B64" | base64 -d > /tmp/contract.pact
+          echo "Contract size: $(wc -c < /tmp/contract.pact) bytes"
+
+          # Build analysis command
+          AI_FLAG="--no-ai"
+          if [ "$USE_AI" = "true" ] && [ -n "$ANTHROPIC_API_KEY" ]; then
+            AI_FLAG=""
+          fi
+
+          # Run analysis
+          python cli.py /tmp/contract.pact \
+            $AI_FLAG \
+            --format json \
+            --no-color \
+            -o /tmp/result.json
+
+          # Add metadata
+          python3 << 'PYEOF'
+          import json, datetime, os
+
+          with open('/tmp/result.json') as f:
+              report = json.load(f)
+
+          report['request_id'] = os.environ.get('REQUEST_ID', 'unknown')
+          report['status'] = 'complete'
+          report['analyzed_at'] = datetime.datetime.utcnow().isoformat() + 'Z'
+          report['ai_used'] = os.environ.get('USE_AI', 'false') == 'true'
+
+          with open('/tmp/result.json', 'w') as f:
+              json.dump(report, f, indent=2)
+
+          rs = report['risk_score']
+          print(f"Grade: {rs['letter_grade']} | Score: {rs['security_score']}/100")
+          print(f"Findings: {len(report['findings'])}")
+          PYEOF
+        env:
+          REQUEST_ID: ${{ github.event.client_payload.request_id || github.event.inputs.request_id }}
+          USE_AI: ${{ github.event.client_payload.use_ai || github.event.inputs.use_ai || 'false' }}
+
+      - name: Post result to GitHub Gist
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          REQUEST_ID: ${{ github.event.client_payload.request_id || github.event.inputs.request_id }}
+        run: |
+          python3 << 'PYEOF'
+          import json, os, urllib.request, urllib.parse
+
+          with open('/tmp/result.json') as f:
+              result_content = f.read()
+
+          request_id = os.environ.get('REQUEST_ID', 'unknown')
+          token = os.environ.get('GIST_TOKEN', '')
+
+          if not token:
+              print("No GIST_TOKEN — writing result to stdout only")
+              print(result_content[:500])
+              exit(0)
+
+          # Post to GitHub Gist
+          gist_data = json.dumps({
+              "description": f"Pact Sentinel analysis {request_id}",
+              "public": False,
+              "files": {
+                  f"pact-sentinel-{request_id}.json": {
+                      "content": result_content
+                  }
+              }
+          })
+
+          req = urllib.request.Request(
+              'https://api.github.com/gists',
+              data=gist_data.encode(),
+              headers={
+                  'Authorization': f'token {token}',
+                  'Content-Type': 'application/json',
+                  'User-Agent': 'pact-sentinel',
+                  'Accept': 'application/vnd.github.v3+json',
+              }
+          )
+
+          try:
+              resp = urllib.request.urlopen(req, timeout=15)
+              gist = json.loads(resp.read())
+              gist_id = gist['id']
+              print(f"✅ Result posted to Gist: {gist_id}")
+              print(f"URL: {gist['html_url']}")
+
+              # Update a KNOWN gist with the request_id → gist_id mapping
+              # So the web UI can look up results by request_id
+              # We use a dedicated "index" gist for this
+              index_gist_id = os.environ.get('INDEX_GIST_ID', '')
+              if index_gist_id:
+                  # Read current index
+                  index_req = urllib.request.Request(
+                      f'https://api.github.com/gists/{index_gist_id}',
+                      headers={
+                          'Authorization': f'token {token}',
+                          'User-Agent': 'pact-sentinel',
+                          'Accept': 'application/vnd.github.v3+json',
+                      }
+                  )
+                  index_resp = urllib.request.urlopen(index_req, timeout=10)
+                  index_data = json.loads(index_resp.read())
+                  current = json.loads(index_data['files'].get('index.json', {}).get('content', '{}'))
+                  current[request_id] = gist_id
+
+                  # Update index
+                  update_req = urllib.request.Request(
+                      f'https://api.github.com/gists/{index_gist_id}',
+                      data=json.dumps({
+                          "files": {"index.json": {"content": json.dumps(current)}}
+                      }).encode(),
+                      headers={
+                          'Authorization': f'token {token}',
+                          'Content-Type': 'application/json',
+                          'User-Agent': 'pact-sentinel',
+                          'Accept': 'application/vnd.github.v3+json',
+                      },
+                      method='PATCH'
+                  )
+                  urllib.request.urlopen(update_req, timeout=10)
+                  print(f"✅ Index updated")
+
+          except Exception as e:
+              print(f"Gist post failed: {e}")
+              print("Result saved locally:")
+              print(result_content[:300])
+          PYEOF
+        env:
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
+          INDEX_GIST_ID: ${{ secrets.INDEX_GIST_ID }}
+          REQUEST_ID: ${{ github.event.client_payload.request_id || github.event.inputs.request_id }}
+
+      - name: Upload result as artifact (fallback)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: analysis-${{ github.event.client_payload.request_id || github.event.inputs.request_id || github.run_id }}
+          path: /tmp/result.json
+          retention-days: 1
