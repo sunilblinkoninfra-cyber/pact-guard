@@ -1,0 +1,92 @@
+name: ⚙️ Configure Live Demo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/configure-live-demo.yml'
+
+jobs:
+  configure:
+    name: Set Secrets & Create Gist Index
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: pip install PyNaCl requests
+
+      - name: Configure all secrets and resources
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          python3 << 'PYEOF'
+          import os, json, base64, urllib.request, subprocess
+
+          TOKEN = os.environ['GH_TOKEN']
+          REPO  = os.environ['REPO']
+
+          def api(method, path, payload=None):
+              url = f'https://api.github.com{path}'
+              data = json.dumps(payload).encode() if payload else None
+              req = urllib.request.Request(url, data=data, method=method, headers={
+                  'Authorization': f'token {TOKEN}',
+                  'Accept': 'application/vnd.github.v3+json',
+                  'Content-Type': 'application/json',
+                  'User-Agent': 'pact-sentinel-config',
+              })
+              resp = urllib.request.urlopen(req, timeout=20)
+              body = resp.read()
+              return resp.status, json.loads(body) if body else {}
+
+          # 1. Get public key for secret encryption
+          status, pk = api('GET', f'/repos/{REPO}/actions/secrets/public-key')
+          print(f'Public key: HTTP {status}')
+          
+          from nacl import encoding, public as nacl_public
+
+          def encrypt_secret(key_b64, value):
+              pk_obj = nacl_public.PublicKey(key_b64.encode(), encoding.Base64Encoder())
+              sealed = nacl_public.SealedBox(pk_obj)
+              return base64.b64encode(sealed.encrypt(value.encode())).decode()
+
+          # 2. Create the index gist (stores request_id → gist_id mapping)
+          status, gist = api('POST', '/gists', {
+              'description': 'Pact Sentinel Analysis Index',
+              'public': False,
+              'files': {'index.json': {'content': '{}'}}
+          })
+          if status == 201:
+              index_gist_id = gist['id']
+              print(f'✅ Index gist created: {index_gist_id}')
+          else:
+              print(f'❌ Gist creation failed: {status}')
+              index_gist_id = ''
+
+          # 3. Set INDEX_GIST_ID secret
+          if index_gist_id:
+              encrypted = encrypt_secret(pk['key'], index_gist_id)
+              status, _ = api('PUT', f'/repos/{REPO}/actions/secrets/INDEX_GIST_ID', {
+                  'encrypted_value': encrypted, 'key_id': pk['key_id']
+              })
+              print(f'✅ INDEX_GIST_ID secret set: HTTP {status}')
+
+          # 4. Set GIST_TOKEN (same as GITHUB_TOKEN for this workflow)
+          # Note: GITHUB_TOKEN already has gist scope in Actions context
+          # We store it as GIST_TOKEN for use in live-analysis.yml
+          encrypted = encrypt_secret(pk['key'], TOKEN)
+          status, _ = api('PUT', f'/repos/{REPO}/actions/secrets/GIST_TOKEN', {
+              'encrypted_value': encrypted, 'key_id': pk['key_id']
+          })
+          print(f'✅ GIST_TOKEN secret set: HTTP {status}')
+
+          print()
+          print('Configuration complete.')
+          print(f'Index Gist ID: {index_gist_id}')
+          print('Secrets set: GIST_TOKEN, INDEX_GIST_ID')
+          print()
+          print('Next step: Add ANTHROPIC_API_KEY manually:')
+          print(f'https://github.com/{REPO}/settings/secrets/actions')
+          PYEOF
