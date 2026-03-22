@@ -25,13 +25,24 @@ app = Flask(__name__, static_folder="web", static_url_path="")
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
     data = request.get_json(force=True)
-    source = data.get("source", "")
-    filename = data.get("filename", "contract.pact")
-    use_ai = data.get("use_ai", False)
-    api_key = data.get("api_key", "") or os.environ.get("ANTHROPIC_API_KEY", "")
-    severity = data.get("severity_filter")
-    skip_rules = data.get("skip_rules", [])
-    confidence = float(data.get("confidence", 0.5))
+    source        = data.get("source", "")
+    filename      = data.get("filename", "contract.pact")
+    use_ai        = data.get("use_ai", False)
+    api_key       = data.get("api_key", "")
+    openai_key    = data.get("openai_key", "")   or os.environ.get("OPENAI_API_KEY",    "")
+    anthropic_key = data.get("anthropic_key", "") or os.environ.get("ANTHROPIC_API_KEY", "")
+    # Legacy: single api_key field auto-detects provider
+    if api_key and not openai_key and not anthropic_key:
+        if api_key.startswith("sk-ant"):
+            anthropic_key = api_key
+        else:
+            openai_key = api_key
+    ai_provider   = data.get("ai_provider")
+    severity      = data.get("severity_filter")
+    skip_rules    = data.get("skip_rules", [])
+    confidence    = float(data.get("confidence", 0.5))
+
+    any_key = bool(openai_key or anthropic_key)
 
     if not source.strip():
         return jsonify({"error": "No source code provided"}), 400
@@ -39,8 +50,10 @@ def analyze():
         return jsonify({"error": "Source too large (max 100KB)"}), 413
 
     sentinel = PactSentinel(
-        api_key=api_key,
-        use_ai=use_ai and bool(api_key),
+        openai_key=openai_key or None,
+        anthropic_key=anthropic_key or None,
+        ai_provider=ai_provider,
+        use_ai=use_ai and any_key,
         severity_filter=severity,
         skip_rules=skip_rules if skip_rules else None,
         confidence_threshold=confidence,

@@ -346,9 +346,14 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
     <h2>Settings</h2>
 
     <div class="field">
-      <label>Anthropic API Key (optional)</label>
-      <input type="password" id="apiKeyInp" placeholder="sk-ant-api03-…">
-      <div class="modal-hint">Enables AI-powered deep explanations and auto-fix suggestions.</div>
+      <label>OpenAI API Key (recommended)</label>
+      <input type="password" id="openaiKeyInp" placeholder="sk-…">
+      <div class="modal-hint">GPT-4o for AI explanations. Set <code>OPENAI_API_KEY</code> env var or paste here.</div>
+    </div>
+    <div class="field">
+      <label>Anthropic API Key (alternative)</label>
+      <input type="password" id="anthropicKeyInp" placeholder="sk-ant-api03-…">
+      <div class="modal-hint">Claude as alternative AI provider. One of the two keys is enough.</div>
     </div>
 
     <div class="field">
@@ -386,9 +391,11 @@ const S = {
   report: null,
   filter: 'all',
   loading: false,
-  apiKey: localStorage.getItem('ps_api_key') || '',
-  ghToken: localStorage.getItem('ps_gh_token') || '',
-  mode: localStorage.getItem('ps_mode') || 'local',
+  openaiKey:    localStorage.getItem('ps_openai_key')    || '',
+  anthropicKey: localStorage.getItem('ps_anthropic_key') || '',
+  ghToken:      localStorage.getItem('ps_gh_token')      || '',
+  mode:         localStorage.getItem('ps_mode')          || 'local',
+  get apiKey() { return this.openaiKey || this.anthropicKey; },
 };
 
 // ── Sample contracts ──────────────────────────────────────────────
@@ -847,7 +854,9 @@ async function analyzeViaGitHub(source) {
       client_payload: {
         contract_b64: b64,
         request_id: reqId,
-        use_ai: !!S.apiKey,
+        use_ai: !!(S.openaiKey || S.anthropicKey),
+        openai_key: S.openaiKey || '',
+        anthropic_key: S.anthropicKey || '',
       }
     })
   });
@@ -1033,9 +1042,10 @@ function exportJSON() {
 
 // ── Settings ──────────────────────────────────────────────────────
 function openSettings() {
-  document.getElementById('apiKeyInp').value = S.apiKey;
-  document.getElementById('ghTokenInp').value = S.ghToken;
-  document.getElementById('modeSelect').value = S.mode;
+  document.getElementById('openaiKeyInp').value    = S.openaiKey;
+  document.getElementById('anthropicKeyInp').value = S.anthropicKey;
+  document.getElementById('ghTokenInp').value      = S.ghToken;
+  document.getElementById('modeSelect').value      = S.mode;
   document.getElementById('settingsModal').style.display='flex';
 }
 
@@ -1044,14 +1054,17 @@ function closeSettings() {
 }
 
 function saveSettings() {
-  S.apiKey = document.getElementById('apiKeyInp').value;
-  S.ghToken = document.getElementById('ghTokenInp').value;
-  S.mode = document.getElementById('modeSelect').value;
-  localStorage.setItem('ps_api_key', S.apiKey);
-  localStorage.setItem('ps_gh_token', S.ghToken);
-  localStorage.setItem('ps_mode', S.mode);
+  S.openaiKey    = document.getElementById('openaiKeyInp').value;
+  S.anthropicKey = document.getElementById('anthropicKeyInp').value;
+  S.ghToken      = document.getElementById('ghTokenInp').value;
+  S.mode         = document.getElementById('modeSelect').value;
+  localStorage.setItem('ps_openai_key',    S.openaiKey);
+  localStorage.setItem('ps_anthropic_key', S.anthropicKey);
+  localStorage.setItem('ps_gh_token',      S.ghToken);
+  localStorage.setItem('ps_mode',          S.mode);
   closeSettings();
-  toast('Settings saved');
+  const provider = S.openaiKey ? 'OpenAI GPT-4o' : S.anthropicKey ? 'Anthropic Claude' : 'browser-only';
+  toast('Settings saved — AI provider: ' + provider);
 }
 
 function toast(msg, dur=2200) {

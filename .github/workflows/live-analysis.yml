@@ -56,10 +56,28 @@ jobs:
           echo "$CONTRACT_B64" | base64 -d > /tmp/contract.pact
           echo "Contract size: $(wc -c < /tmp/contract.pact) bytes"
 
-          # Build analysis command
+          # Build analysis command — support both OpenAI and Anthropic
           AI_FLAG="--no-ai"
-          if [ "$USE_AI" = "true" ] && [ -n "$ANTHROPIC_API_KEY" ]; then
+          
+          # Check payload keys first (passed from web UI)
+          OPENAI_FROM_PAYLOAD="${{ github.event.client_payload.openai_key }}"
+          ANTHROPIC_FROM_PAYLOAD="${{ github.event.client_payload.anthropic_key }}"
+          
+          if [ -n "$OPENAI_FROM_PAYLOAD" ]; then
+            export OPENAI_API_KEY="$OPENAI_FROM_PAYLOAD"
+          fi
+          if [ -n "$ANTHROPIC_FROM_PAYLOAD" ]; then
+            export ANTHROPIC_API_KEY="$ANTHROPIC_FROM_PAYLOAD"
+          fi
+          
+          # Determine if AI is available
+          if [ "$USE_AI" = "true" ] && ([ -n "$OPENAI_API_KEY" ] || [ -n "$ANTHROPIC_API_KEY" ]); then
             AI_FLAG=""
+            if [ -n "$OPENAI_API_KEY" ]; then
+              echo "AI provider: OpenAI (GPT-4o)"
+            else
+              echo "AI provider: Anthropic (Claude)"
+            fi
           fi
 
           # Run analysis

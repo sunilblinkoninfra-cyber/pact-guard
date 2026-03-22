@@ -50,24 +50,42 @@ class AnalysisResult:
 class PactSentinel:
     """
     Main entry point for the Pact security analyzer.
-    
+
     Usage:
-        sentinel = PactSentinel(api_key="sk-ant-...")
-        result = sentinel.analyze_source(pact_code)
-        print(result.as_cli())
-        print(result.as_json())
+        # Auto-detect from env vars (OPENAI_API_KEY or ANTHROPIC_API_KEY)
+        sentinel = PactSentinel()
+
+        # Explicit OpenAI
+        sentinel = PactSentinel(openai_key="sk-...")
+
+        # Explicit Anthropic  
+        sentinel = PactSentinel(anthropic_key="sk-ant-...")
+
+        # Force provider
+        sentinel = PactSentinel(ai_provider="openai")
     """
 
     def __init__(
         self,
         api_key: Optional[str] = None,
+        openai_key: Optional[str] = None,
+        anthropic_key: Optional[str] = None,
+        ai_provider: Optional[str] = None,
         use_ai: bool = True,
         severity_filter: Optional[str] = None,
         tag_filter: Optional[List[str]] = None,
         skip_rules: Optional[List[str]] = None,
         confidence_threshold: float = 0.5,
     ):
-        self.ai = AIAnalyzer(api_key=api_key) if use_ai else AIAnalyzer(api_key="")
+        if use_ai:
+            self.ai = AIAnalyzer(
+                api_key=api_key,
+                openai_key=openai_key,
+                anthropic_key=anthropic_key,
+                provider=ai_provider,
+            )
+        else:
+            self.ai = AIAnalyzer(api_key="")
         self.rules = get_rules(severity_filter=severity_filter, tag_filter=tag_filter)
         if skip_rules:
             self.rules = [r for r in self.rules if r.rule_id not in skip_rules]

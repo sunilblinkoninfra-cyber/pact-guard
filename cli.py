@@ -43,7 +43,10 @@ def build_parser():
     p.add_argument("--tags", "-t", metavar="TAGS")
     p.add_argument("--skip-rules", metavar="RULES")
     p.add_argument("--no-ai", action="store_true")
-    p.add_argument("--api-key", metavar="KEY")
+    p.add_argument("--api-key",       metavar="KEY",      help="API key — OpenAI (sk-...) or Anthropic (sk-ant-...). Auto-detects provider.")
+    p.add_argument("--openai-key",    metavar="KEY",      help="OpenAI API key (or OPENAI_API_KEY env var)")
+    p.add_argument("--anthropic-key", metavar="KEY",      help="Anthropic API key (or ANTHROPIC_API_KEY env var)")
+    p.add_argument("--ai-provider",   metavar="PROVIDER", choices=["openai","anthropic"], help="Force AI provider")
     p.add_argument("--exit-code", action="store_true")
     p.add_argument("--fail-on", choices=["critical","high","medium","low"], default="high")
     p.add_argument("--confidence", type=float, default=0.5)
@@ -88,14 +91,27 @@ def main():
     skip_rules = [r.strip() for r in args.skip_rules.split(",")] if args.skip_rules else None
     api_key = args.api_key or os.environ.get("ANTHROPIC_API_KEY")
 
+    openai_key    = getattr(args, 'openai_key',    None) or os.environ.get("OPENAI_API_KEY",    "")
+    anthropic_key = getattr(args, 'anthropic_key', None) or os.environ.get("ANTHROPIC_API_KEY", "")
+    ai_provider   = getattr(args, 'ai_provider',   None)
+
     sentinel = PactSentinel(
         api_key=api_key,
+        openai_key=openai_key or None,
+        anthropic_key=anthropic_key or None,
+        ai_provider=ai_provider,
         use_ai=not args.no_ai,
         severity_filter=severity_filter,
         tag_filter=tag_filter,
         skip_rules=skip_rules,
         confidence_threshold=args.confidence,
     )
+    # Show which AI provider will be used
+    if not args.no_ai and not getattr(args, 'summary', False):
+        info = sentinel.ai.get_provider_info()
+        if info['available'] == 'True':
+            import sys
+            print(f"  AI: {info['provider'].upper()} ({info['model']}) {info['key_prefix']}", file=sys.stderr)
 
     if args.dir:
         results = sentinel.analyze_directory(args.dir)
