@@ -138,6 +138,34 @@ class BaseRule(ABC):
 
 
 # ══════════════════════════════════════════════════════════════════════
+    def _build_call_graph(self, mod) -> dict:
+        """Returns {fn_name: set_of_callee_names}"""
+        graph = {}
+        for name, fn in {**mod.functions, **mod.capabilities}.items():
+            callees = set()
+            for node in fn.body:
+                for _, n in self._flatten(node):
+                    if n.node_type == NodeType.CALL and n.name:
+                        callees.add(n.name)
+            graph[name] = callees
+        return graph
+
+    def _all_call_sites_guarded(self, fn_name, mod, call_graph) -> bool:
+        """True if every public function that can reach fn_name enforces a cap."""
+        callers = [
+            (name, fn) for name, fn in mod.functions.items()
+            if fn_name in call_graph.get(name, set())
+        ]
+        if not callers:
+            return False
+        for caller_name, caller_fn in callers:
+            if caller_fn.visibility == Visibility.PRIVATE:
+                continue
+            if not (caller_fn.capability_guards or caller_fn.enforcements
+                    or caller_fn.capabilities_required):
+                return False
+        return True
+
 # R-001 — State Mutation Without Capability Guard
 # ══════════════════════════════════════════════════════════════════════
 class R001_MissingCapabilityBeforeMutation(BaseRule):
@@ -149,6 +177,7 @@ class R001_MissingCapabilityBeforeMutation(BaseRule):
     def analyze(self, contract: ContractFile) -> List[Finding]:
         findings = []
         for mod in contract.modules:
+            call_graph = self._build_call_graph(mod)
             for fn_name, fn in mod.functions.items():
                 if fn.visibility == Visibility.PRIVATE or fn_name.startswith('_') or 'internal' in fn_name.lower():
                     continue
@@ -158,13 +187,7 @@ class R001_MissingCapabilityBeforeMutation(BaseRule):
                     continue
                 
                 # FP Calibration: Check if it delegates to private helpers or external enforces
-                delegates = False
-                for node in fn.body:
-                    for _, n in self._flatten(node):
-                        if n.name and ('enforce' in n.name or 'require' in n.name or n.name.startswith('_')):
-                            delegates = True
-                            break
-                if delegates:
+                if self._all_call_sites_guarded(fn_name, mod, call_graph):
                     continue
 
                 # ONE finding per function (pick worst mutation)
@@ -675,35 +698,60 @@ class R008_UnsafeDefpactFallback(BaseRule):
         findings = []
         for mod in contract.modules:
             for pact_name, pact in mod.pacts.items():
+                steps = pact.steps if hasattr(pact, 'steps') else []
+
+                # ── A: Per-step rollback audit ───────────────────────
+                for i, step in enumerate(steps):
+                    has_rollback = getattr(step, 'has_rollback', False)
+                    step_mutations = [
+                        n for _, n in self._flatten(step)
+                        if n.node_type in (NodeType.WRITE, NodeType.UPDATE,
+                                           NodeType.INSERT, NodeType.DELETE)
+                        and any(s in (n.attributes.get("table","")).lower()
+                                for s in ["account","balance","token","ledger","vault"])
+                    ]
+                    if step_mutations and not has_rollback:
+                        table = step_mutations[0].attributes.get("table","?")
+                        findings.append(Finding(
+                            rule_id=self.rule_id,
+                            title="defpact Step Missing step-with-rollback on Asset Transfer",
+                            severity=Severity.HIGH,
+                            location=Location(module=mod.name,
+                                              function=pact_name,
+                                              line=step.location.line if step.location else 0),
+                            issue=(
+                                f"`defpact` `{pact_name}` step {i} mutates `{table}` "
+                                f"but uses `step` not `step-with-rollback`."
+                            ),
+                            risk=(
+                                "If a later step fails, the asset debit in this step "
+                                "cannot be reversed — funds are permanently lost."
+                            ),
+                            recommendation=(
+                                f"Change `(step ...)` to `(step-with-rollback ... (rollback ...))` "
+                                f"and implement the rollback as a credit back to sender."
+                            ),
+                            fixed_code_example=(
+                                "(step-with-rollback\n"
+                                "  (with-capability (DEBIT sender amount)\n"
+                                "    (debit sender amount))\n"
+                                "  ;; rollback:\n"
+                                "  (credit sender amount))"
+                            ),
+                            tags=self.tags,
+                        ))
+
+                # ── B: Retain original coarse cap-guard check ────────
                 if pact.state_mutations and not pact.capability_guards:
                     findings.append(Finding(
                         rule_id=self.rule_id,
                         title=self.title,
                         severity=self.severity,
                         location=self._loc(mod.name, pact),
-                        issue=(
-                            f"`defpact` `{pact_name}` mutates state in "
-                            f"{len(pact.state_mutations)} step(s) without per-step capability guards."
-                        ),
-                        risk=(
-                            f"Multi-step pacts without per-step auth allow adversaries to resume "
-                            f"execution out of sequence with manipulated state. "
-                            f"In cross-chain bridge scenarios this enables double-spend attacks."
-                        ),
-                        recommendation=(
-                            f"Each step in `{pact_name}` that modifies state must call "
-                            f"`(require-capability ...)` at the start, binding the authorized "
-                            f"initiator across all steps of the pact execution."
-                        ),
-                        fixed_code_example=(
-                            f"(defpact {pact_name} (sender:string receiver:string amount:decimal)\n"
-                            f"  (step\n"
-                            f"    (with-capability (TRANSFER sender receiver amount)\n"
-                            f"      (debit sender amount)))\n"
-                            f"  (step\n"
-                            f"    (with-capability (TRANSFER sender receiver amount)\n"
-                            f"      (credit receiver amount))))"
-                        ),
+                        issue=f"`defpact` `{pact_name}` mutates state without per-step capability guards.",
+                        risk="Steps can be resumed with manipulated state; cross-chain double-spend possible.",
+                        recommendation="Add (require-capability ...) at start of each stateful step.",
+                        fixed_code_example="(step (with-capability (TRANSFER s r a) (debit s a)))",
                         tags=self.tags,
                     ))
         return findings
@@ -935,6 +983,188 @@ class R012_MissingManagedCapability(BaseRule):
 # ══════════════════════════════════════════════════════════════════════
 # Rule Registry
 # ══════════════════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════════════════
+# R-013 — enforce-one Always-True Branch
+# ══════════════════════════════════════════════════════════════════════
+class R013_EnforceOneAlwaysTrue(BaseRule):
+    rule_id = "R-013"
+    title   = "enforce-one Always-True Branch (Auth Bypass)"
+    severity = Severity.HIGH
+    tags    = ["enforce-one", "authorization-bypass", "always-true"]
+
+    ALWAYS_TRUE = {"true", "#t", "1"}
+
+    def _is_always_true(self, node: ASTNode) -> bool:
+        if not node: return False
+        if node.name == "enforce" and node.children:
+            first = node.children[0]
+            return (first.raw or first.name or "").strip().lower() in self.ALWAYS_TRUE
+        return (node.raw or node.name or "").strip().lower() in self.ALWAYS_TRUE
+
+    def analyze(self, contract: ContractFile) -> List[Finding]:
+        findings = []
+        for mod in contract.modules:
+            all_fns = list(mod.functions.values()) + list(mod.capabilities.values())
+            for fn in all_fns:
+                for node in fn.find_all(NodeType.ENFORCE_ONE):
+                    branches = node.attributes.get("branches", node.children)
+                    for i, branch in enumerate(branches):
+                        if self._is_always_true(branch):
+                            findings.append(Finding(
+                                rule_id=self.rule_id, title=self.title,
+                                severity=Severity.HIGH,
+                                location=self._loc(mod.name, fn, node),
+                                issue=(
+                                    f"`{fn.name}`: `enforce-one` branch {i} is always-true "
+                                    f"— all other branches are dead code."
+                                ),
+                                risk=(
+                                    "An always-true branch in `enforce-one` silently removes "
+                                    "ALL authorization checks. Every other branch is unreachable. "
+                                    "Any caller is granted access unconditionally."
+                                ),
+                                recommendation=(
+                                    "Remove the always-true branch. Every branch in "
+                                    "`enforce-one` must be a meaningful, independently "
+                                    "satisfiable authorization check."
+                                ),
+                                fixed_code_example=(
+                                    "(enforce-one \"auth\"\n"
+                                    "  [(enforce-guard (at 'guard (read accounts sender)))\n"
+                                    "   (enforce-guard (keyset-ref-guard 'ns.admin-ks))])"
+                                ),
+                                tags=self.tags,
+                            ))
+                            break
+        return findings
+
+
+# ══════════════════════════════════════════════════════════════════════
+# R-014 — Cross-Chain Pact Replay (VP-10)
+# ══════════════════════════════════════════════════════════════════════
+class R014_CrossChainPactReplay(BaseRule):
+    rule_id  = "R-014"
+    title    = "Cross-Chain Pact Resume Without chain-id Validation"
+    severity = Severity.HIGH
+    tags     = ["cross-chain", "defpact", "replay", "yield", "resume"]
+
+    CHAIN_ID_PATTERNS = {"chain-id", "chain_id", "source-chain", "at 'chain-id"}
+
+    def _has_chain_id_check(self, fn) -> bool:
+        for node in fn.find_all(NodeType.ENFORCE):
+            raw = " ".join(
+                (c.raw or c.name or "") for c in self._flatten(node)[0:][1:]
+                if (c.raw or c.name)
+            ).lower()
+            if any(p in raw for p in self.CHAIN_ID_PATTERNS):
+                return True
+        return False
+
+    def analyze(self, contract: ContractFile) -> List[Finding]:
+        findings = []
+        for mod in contract.modules:
+            for pact_name, pact in mod.pacts.items():
+                has_yield  = any(
+                    n for step in pact.steps
+                    for _, n in self._flatten(step)
+                    if (n.name or "").lower() in {"yield", "resume"}
+                )
+                if not has_yield:
+                    continue
+                if not self._has_chain_id_check(pact):
+                    findings.append(Finding(
+                        rule_id=self.rule_id, title=self.title,
+                        severity=Severity.HIGH,
+                        location=self._loc(mod.name, pact),
+                        issue=(
+                            f"`defpact` `{pact_name}` uses yield/resume for cross-chain "
+                            f"execution but does not validate the source chain-id."
+                        ),
+                        risk=(
+                            "Without chain-id validation an attacker can replay the pact "
+                            "on a different chain, double-claiming bridged assets or "
+                            "executing the receiving step against manipulated state."
+                        ),
+                        recommendation=(
+                            "In the resume step, enforce the expected source chain:\n"
+                            "(enforce (= (at 'source-chain (yield-data)) EXPECTED-CHAIN)\n"
+                            "         \"Invalid source chain\")"
+                        ),
+                        fixed_code_example=(
+                            "(defpact cross-transfer (sender receiver amount chain)\n"
+                            "  (step\n"
+                            "    (with-capability (TRANSFER sender receiver amount)\n"
+                            "      (debit sender amount)\n"
+                            "      (yield {'sender: sender 'amount: amount\n"
+                            "              'source-chain: (at 'chain-id (chain-data))})))\n"
+                            "  (step\n"
+                            "    (resume {'sender := s 'amount := a 'source-chain := sc}\n"
+                            "      (enforce (= sc EXPECTED_CHAIN) \"Wrong source chain\")\n"
+                            "      (credit receiver a))))"
+                        ),
+                        tags=self.tags,
+                    ))
+        return findings
+
+
+# ══════════════════════════════════════════════════════════════════════
+# R-015 — Namespace Isolation Failure (VP-14)
+# ══════════════════════════════════════════════════════════════════════
+class R015_NamespaceIsolation(BaseRule):
+    rule_id  = "R-015"
+    title    = "Module Deployed Outside Declared Namespace"
+    severity = Severity.MEDIUM
+    tags     = ["namespace", "isolation", "deployment", "vp-14"]
+
+    def analyze(self, contract: ContractFile) -> List[Finding]:
+        import re
+        findings = []
+        ns_match = re.search(r"\(namespace\s+['\"]?([\w-]+)['\"]?\)", contract.source)
+        declared_ns = getattr(contract, 'namespace', ns_match.group(1) if ns_match else None)
+        for mod in contract.modules:
+            mod_ns = getattr(mod, 'namespace', mod.name.split('.')[0] if '.' in mod.name else None)
+            if not declared_ns:
+                findings.append(Finding(
+                    rule_id=self.rule_id, title=self.title,
+                    severity=Severity.MEDIUM,
+                    location=Location(module=mod.name, function="",
+                                      line=mod.location.line if mod.location else 0),
+                    issue=f"Module `{mod.name}` has no (namespace ...) declaration.",
+                    risk=(
+                        "Without namespace isolation, any account can deploy a module "
+                        "with the same name and shadow this contract in cross-module calls."
+                    ),
+                    recommendation=(
+                        "Add `(namespace 'your-project)` before the module declaration. "
+                        "Use a registered namespace (n_ or purchased name)."
+                    ),
+                    fixed_code_example=(
+                        "(namespace 'your-project)\n"
+                        f"(module {mod.name} GOVERNANCE\n  ...)"
+                    ),
+                    tags=self.tags,
+                ))
+            elif mod_ns and declared_ns and mod_ns != declared_ns:
+                findings.append(Finding(
+                    rule_id=self.rule_id, title=self.title,
+                    severity=Severity.MEDIUM,
+                    location=Location(module=mod.name, function="",
+                                      line=mod.location.line if mod.location else 0),
+                    issue=(
+                        f"Module `{mod.name}` declares namespace `{declared_ns}` "
+                        f"but module prefix is `{mod_ns}` — mismatch."
+                    ),
+                    risk="Module is deployed in a different namespace than declared, breaking expected access control boundaries.",
+                    recommendation=f"Ensure (namespace '{declared_ns}) matches the module name prefix.",
+                    fixed_code_example=(
+                        f"(namespace '{declared_ns})\n"
+                        f"(module {declared_ns}.{mod.name.split('.')[-1]} GOVERNANCE\n  ...)"
+                    ),
+                    tags=self.tags,
+                ))
+        return findings
+
 ALL_RULES: List[BaseRule] = [
     R001_MissingCapabilityBeforeMutation(),
     R002_ImproperWithCapabilityUsage(),
@@ -948,6 +1178,9 @@ ALL_RULES: List[BaseRule] = [
     R010_UnprotectedTableInit(),
     R011_ReentrancyViaCompose(),
     R012_MissingManagedCapability(),
+    R013_EnforceOneAlwaysTrue(),
+    R014_CrossChainPactReplay(),
+    R015_NamespaceIsolation(),
 ]
 RULES_BY_ID: dict = {r.rule_id: r for r in ALL_RULES}
 
