@@ -289,7 +289,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          python -m pytest tests/test_sentinel.py \
+          python -m pytest tests/test_guard.py \
             --cov=src \
             --cov-report=term-missing \
             --cov-report=json:coverage.json \

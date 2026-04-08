@@ -139,7 +139,7 @@ Test Results:
         with: { python-version: '3.11' }
 
       - name: Run 39 unit tests
-        run: python -m pytest tests/test_sentinel.py -v --tb=short
+        run: python -m pytest tests/test_guard.py -v --tb=short
 
       - name: Verify vulnerable contract detection
         run: |

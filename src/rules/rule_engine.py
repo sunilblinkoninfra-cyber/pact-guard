@@ -128,6 +128,14 @@ class BaseRule(ABC):
                 n = n[len(prefix):]
         return n + "_AUTH"
 
+    def _flatten(self, node: ASTNode) -> List[Tuple[int, ASTNode]]:
+        results = []
+        if node.location:
+            results.append((node.location.line, node))
+        for child in node.children:
+            results.extend(self._flatten(child))
+        return results
+
 
 # ══════════════════════════════════════════════════════════════════════
 # R-001 — State Mutation Without Capability Guard
@@ -595,14 +603,6 @@ class R006_StateChangeBeforeAuth(BaseRule):
                         ))
                         return
         pass
-
-    def _flatten(self, node: ASTNode) -> List[Tuple[int, ASTNode]]:
-        results = []
-        if node.location:
-            results.append((node.location.line, node))
-        for child in node.children:
-            results.extend(self._flatten(child))
-        return results
 
 
 # ══════════════════════════════════════════════════════════════════════

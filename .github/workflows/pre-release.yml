@@ -45,7 +45,7 @@ jobs:
           echo "Release version: $VERSION"
 
       - name: Gate 1 — All unit tests pass
-        run: python -m pytest tests/test_sentinel.py -v --tb=short
+        run: python -m pytest tests/test_guard.py -v --tb=short
 
       - name: Gate 2 — Vulnerable contract detection accuracy
         run: |

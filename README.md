@@ -237,7 +237,7 @@ pact-guard/
 ├── web/index.html              Web UI
 ├── docs/                       GitHub Pages site
 ├── tests/
-│   ├── test_sentinel.py        39 unit tests
+│   ├── test_guard.py        39 unit tests
 │   └── contracts/              Test .pact files
 ├── vscode-extension/           VSCode plugin scaffold
 └── .github/workflows/          CI/CD pipelines
