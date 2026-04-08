@@ -214,7 +214,7 @@ jobs:
       - name: Commit version bump
         if: github.event.inputs.dry_run != 'true'
         run: |
-          git config user.email "versioning-agent@pact-sentinel.dev"
+          git config user.email "versioning-agent@pact-guard.dev"
           git config user.name "🏷️ Versioning Agent"
           git add CHANGELOG.md pyproject.toml
           git commit -m "chore(release): bump version to ${{ needs.analyze-commits.outputs.next_version }}
@@ -234,7 +234,7 @@ jobs:
           GH_TOKEN="${P1}${P2}"
           NEXT_VER="${{ needs.analyze-commits.outputs.next_version }}"
 
-          git remote set-url origin "https://x-token:${GH_TOKEN}@github.com/sunilblinkoninfra-cyber/pact-sentinel.git"
+          git remote set-url origin "https://x-token:${GH_TOKEN}@github.com/sunilblinkoninfra-cyber/pact-guard.git"
           git push origin main
 
           git tag -a "v${NEXT_VER}" -m "Release v${NEXT_VER}
@@ -277,7 +277,7 @@ jobs:
               if m: versions['pyproject.toml'] = m.group(1)
 
           with open('cli.py') as f:
-              m = re.search(r'pact-sentinel (\d+\.\d+\.\d+)', f.read())
+              m = re.search(r'pact-guard (\d+\.\d+\.\d+)', f.read())
               if m: versions['cli.py'] = m.group(1)
 
           with open('src/__init__.py') as f:

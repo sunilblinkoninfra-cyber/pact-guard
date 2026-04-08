@@ -1,5 +1,5 @@
-"""Pact Sentinel — AI-powered Pact smart contract security analyzer."""
-from .core.analyzer import PactSentinel, AnalysisResult
+"""PactGuard — AI-powered Pact smart contract security analyzer."""
+from .core.analyzer import PactGuard, AnalysisResult
 
 __version__ = "1.0.0"
-__all__ = ["PactSentinel", "AnalysisResult"]
+__all__ = ["PactGuard", "AnalysisResult"]

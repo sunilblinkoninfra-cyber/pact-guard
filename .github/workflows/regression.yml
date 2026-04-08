@@ -189,7 +189,7 @@ jobs:
           sys.path.insert(0, '.')
           from src.rules.rule_engine import ALL_RULES, RULES_BY_ID, Severity
           from src.parser.pact_parser import parse_contract
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
           # ── True positive tests (must detect) ─────────────
           TRUE_POSITIVES = {
@@ -262,9 +262,9 @@ jobs:
           python3 << 'PYEOF'
           import sys, json
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           r = s.analyze_file('tests/contracts/vulnerable-defi.pact')
           bd = r.risk_score.breakdown
 
@@ -302,9 +302,9 @@ jobs:
           python3 << 'PYEOF'
           import sys, json
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           r = s.analyze_file('tests/contracts/vulnerable-defi.pact')
           report = json.loads(r.as_json())
 
@@ -333,9 +333,9 @@ jobs:
           python3 << 'PYEOF'
           import sys, json
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           r = s.analyze_file('tests/contracts/vulnerable-defi.pact')
           sarif = json.loads(r.as_sarif())
 
@@ -345,7 +345,7 @@ jobs:
           run = sarif['runs'][0]
           assert 'tool' in run
           assert 'results' in run
-          assert run['tool']['driver']['name'] == 'pact-sentinel'
+          assert run['tool']['driver']['name'] == 'pact-guard'
 
           for result in run['results']:
               assert 'ruleId' in result
@@ -362,13 +362,13 @@ jobs:
           python3 << 'PYEOF'
           import sys
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           r = s.analyze_file('tests/contracts/vulnerable-defi.pact')
           md = r.as_markdown()
 
-          required = ['# 🛡️ Pact Sentinel', '## Summary', '## Finding Statistics',
+          required = ['# 🛡️ PactGuard', '## Summary', '## Finding Statistics',
                       '## Findings', '| Severity | Count |', 'Critical']
           for section in required:
               assert section in md, f"Missing section in Markdown: {section!r}"

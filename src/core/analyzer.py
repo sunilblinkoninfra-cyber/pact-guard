@@ -1,5 +1,5 @@
 """
-Core Analyzer — Pact Sentinel Orchestrator
+Core Analyzer — PactGuard Orchestrator
 Coordinates: Parser → Rule Engine → AI Enrichment → Risk Score → Reporter
 """
 import time
@@ -10,7 +10,7 @@ from typing import List, Optional, Dict, Any, Union
 from ..parser.pact_parser import parse_contract, parse_file
 from ..parser.ast_nodes import ContractFile
 from ..rules.rule_engine import Finding, get_rules, ALL_RULES
-from ..ai.claude_analyzer import AIAnalyzer
+from ..ai.gemini_analyzer import AIAnalyzer
 from ..output.risk_score import compute_risk_score, RiskScore
 from ..output.reporter import build_json_report, render_cli, render_markdown, render_sarif
 
@@ -47,29 +47,29 @@ class AnalysisResult:
         return json.dumps(render_sarif(self.report), indent=2)
 
 
-class PactSentinel:
+class PactGuard:
     """
     Main entry point for the Pact security analyzer.
 
     Usage:
-        # Auto-detect from env vars (OPENAI_API_KEY or ANTHROPIC_API_KEY)
-        sentinel = PactSentinel()
+        # Auto-detect from env vars (OPENAI_API_KEY or GEMINI_API_KEY)
+        sentinel = PactGuard()
 
         # Explicit OpenAI
-        sentinel = PactSentinel(openai_key="sk-...")
+        sentinel = PactGuard(openai_key="sk-...")
 
-        # Explicit Anthropic  
-        sentinel = PactSentinel(anthropic_key="sk-ant-...")
+        # Explicit Gemini  
+        sentinel = PactGuard(gemini_key="AIza...")
 
         # Force provider
-        sentinel = PactSentinel(ai_provider="openai")
+        sentinel = PactGuard(ai_provider="openai")
     """
 
     def __init__(
         self,
         api_key: Optional[str] = None,
         openai_key: Optional[str] = None,
-        anthropic_key: Optional[str] = None,
+        gemini_key: Optional[str] = None,
         ai_provider: Optional[str] = None,
         use_ai: bool = True,
         severity_filter: Optional[str] = None,
@@ -81,7 +81,7 @@ class PactSentinel:
             self.ai = AIAnalyzer(
                 api_key=api_key,
                 openai_key=openai_key,
-                anthropic_key=anthropic_key,
+                gemini_key=gemini_key,
                 provider=ai_provider,
             )
         else:
@@ -188,7 +188,7 @@ class PactSentinel:
         )
         report = {
             "schema_version": "1.0",
-            "tool": "pact-sentinel",
+            "tool": "pact-guard",
             "analyzed_file": filename,
             "elapsed_seconds": round(elapsed, 3),
             "error": f"Parse error: {error}",

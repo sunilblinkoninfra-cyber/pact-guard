@@ -1,3 +1,3 @@
-"""Pytest configuration for Pact Sentinel tests."""
+"""Pytest configuration for PactGuard tests."""
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

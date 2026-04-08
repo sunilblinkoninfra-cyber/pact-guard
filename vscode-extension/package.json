@@ -1,9 +1,9 @@
 {
-  "name": "pact-sentinel",
-  "displayName": "Pact Sentinel",
+  "name": "pact-guard",
+  "displayName": "PactGuard",
   "description": "AI-powered security analyzer for Kadena Pact smart contracts",
   "version": "1.0.0",
-  "publisher": "pact-sentinel",
+  "publisher": "pact-guard",
   "icon": "images/icon.png",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Linters", "Other"],
@@ -24,70 +24,70 @@
     }],
     "commands": [
       {
-        "command": "pact-sentinel.analyzeFile",
-        "title": "Pact Sentinel: Analyze Current File",
+        "command": "pact-guard.analyzeFile",
+        "title": "PactGuard: Analyze Current File",
         "icon": "$(shield)"
       },
       {
-        "command": "pact-sentinel.analyzeWorkspace",
-        "title": "Pact Sentinel: Analyze Workspace",
+        "command": "pact-guard.analyzeWorkspace",
+        "title": "PactGuard: Analyze Workspace",
         "icon": "$(search)"
       },
       {
-        "command": "pact-sentinel.showReport",
-        "title": "Pact Sentinel: Show Security Report"
+        "command": "pact-guard.showReport",
+        "title": "PactGuard: Show Security Report"
       },
       {
-        "command": "pact-sentinel.openSettings",
-        "title": "Pact Sentinel: Settings"
+        "command": "pact-guard.openSettings",
+        "title": "PactGuard: Settings"
       }
     ],
     "menus": {
       "editor/title": [{
-        "command": "pact-sentinel.analyzeFile",
+        "command": "pact-guard.analyzeFile",
         "when": "resourceExtname == .pact",
         "group": "navigation"
       }],
       "explorer/context": [{
-        "command": "pact-sentinel.analyzeFile",
+        "command": "pact-guard.analyzeFile",
         "when": "resourceExtname == .pact"
       }]
     },
     "configuration": {
-      "title": "Pact Sentinel",
+      "title": "PactGuard",
       "properties": {
-        "pact-sentinel.pythonPath": {
+        "pact-guard.pythonPath": {
           "type": "string",
           "default": "python3",
           "description": "Path to Python interpreter"
         },
-        "pact-sentinel.sentinelPath": {
+        "pact-guard.sentinelPath": {
           "type": "string",
           "default": "",
-          "description": "Path to pact-sentinel cli.py (leave blank to auto-detect)"
+          "description": "Path to pact-guard cli.py (leave blank to auto-detect)"
         },
-        "pact-sentinel.anthropicApiKey": {
+        "pact-guard.geminiApiKey": {
           "type": "string",
           "default": "",
-          "description": "Anthropic API key for AI enrichment"
+          "description": "Gemini API key for AI enrichment"
         },
-        "pact-sentinel.enableAI": {
+        "pact-guard.enableAI": {
           "type": "boolean",
           "default": false,
           "description": "Enable AI-powered analysis (requires API key)"
         },
-        "pact-sentinel.severityThreshold": {
+        "pact-guard.severityThreshold": {
           "type": "string",
           "enum": ["critical", "high", "medium", "low"],
           "default": "medium",
           "description": "Minimum severity to show diagnostics"
         },
-        "pact-sentinel.analyzeOnSave": {
+        "pact-guard.analyzeOnSave": {
           "type": "boolean",
           "default": true,
           "description": "Automatically analyze .pact files on save"
         },
-        "pact-sentinel.skipRules": {
+        "pact-guard.skipRules": {
           "type": "array",
           "items": { "type": "string" },
           "default": [],
@@ -99,13 +99,13 @@
       "explorer": [{
         "id": "pactSentinelResults",
         "name": "Security Findings",
-        "when": "pact-sentinel.hasFindings"
+        "when": "pact-guard.hasFindings"
       }]
     },
     "viewsContainers": {
       "activitybar": [{
-        "id": "pact-sentinel",
-        "title": "Pact Sentinel",
+        "id": "pact-guard",
+        "title": "PactGuard",
         "icon": "$(shield)"
       }]
     }

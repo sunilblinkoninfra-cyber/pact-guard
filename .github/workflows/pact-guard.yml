@@ -1,5 +1,5 @@
 ## ─────────────────────────────────────────────────────────────────
-## .github/workflows/pact-sentinel.yml
+## .github/workflows/pact-guard.yml
 ## Pact Smart Contract Security Scanner — GitHub Actions CI
 ##
 ## Triggers:
@@ -13,7 +13,7 @@
 ##   - PR comment with findings summary (if PR)
 ##   - Build fails if critical/high findings exist
 ## ─────────────────────────────────────────────────────────────────
-name: Pact Sentinel — Smart Contract Security Scan
+name: PactGuard — Smart Contract Security Scan
 
 on:
   push:
@@ -85,10 +85,10 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install pact-sentinel
+      - name: Install pact-guard
         run: |
           pip install -r requirements.txt
-          echo "✅ pact-sentinel installed"
+          echo "✅ pact-guard installed"
 
       - name: Run static analysis (all .pact files)
         id: scan
@@ -117,13 +117,13 @@ jobs:
         if: always()
         with:
           sarif_file: results.sarif
-          category: pact-sentinel
+          category: pact-guard
 
       - name: Upload JSON report artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: pact-sentinel-report
+          name: pact-guard-report
           path: |
             report.json
             results.sarif
@@ -183,7 +183,7 @@ jobs:
           except:
               data = {}
           
-          summary = """# 🛡️ Pact Sentinel Security Report
+          summary = """# 🛡️ PactGuard Security Report
           
           """
           
@@ -227,7 +227,7 @@ jobs:
     if: |
       github.ref == 'refs/heads/main' &&
       needs.discover.outputs.has_pact == 'true' &&
-      secrets.ANTHROPIC_API_KEY != ''
+      secrets.GEMINI_API_KEY != ''
     environment: production
 
     steps:
@@ -239,12 +239,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
 
-      - name: Install pact-sentinel
+      - name: Install pact-guard
         run: pip install -r requirements.txt
 
       - name: Run AI-enriched analysis
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python cli.py --dir . \
             --format json \
@@ -254,7 +254,7 @@ jobs:
       - name: Upload AI report
         uses: actions/upload-artifact@v4
         with:
-          name: pact-sentinel-ai-report
+          name: pact-guard-ai-report
           path: ai-report.json
           retention-days: 90
 
@@ -273,14 +273,14 @@ jobs:
       - name: Download report
         uses: actions/download-artifact@v4
         with:
-          name: pact-sentinel-report
+          name: pact-guard-report
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install pact-sentinel
+      - name: Install pact-guard
         run: pip install -r requirements.txt
 
       - name: Generate markdown summary

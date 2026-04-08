@@ -23,9 +23,9 @@ jobs:
           python3 << 'PYEOF'
           import sys, json
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
 
           BASELINE = {
               'tests/contracts/vulnerable-defi.pact': {
@@ -106,13 +106,13 @@ jobs:
           import sys, time, statistics, json
           sys.path.insert(0, '.')
           from src.parser.pact_parser import parse_contract
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
           from datetime import datetime, timezone
 
           with open('tests/contracts/vulnerable-defi.pact') as f:
               source = f.read()
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
 
           # Parse benchmark
           parse_times = []
@@ -194,11 +194,11 @@ jobs:
           import sys, random, string
           sys.path.insert(0, '.')
           from src.parser.pact_parser import parse_contract
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
           random.seed(42)  # deterministic
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           crashes = []
           N = 500
 

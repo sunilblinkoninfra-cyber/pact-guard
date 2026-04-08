@@ -1,8 +1,8 @@
-# 🛡️ Pact Sentinel — Competition Submission
+# 🛡️ PactGuard — Competition Submission
 
 ## Live Demo
 
-**→ https://sunilblinkoninfra-cyber.github.io/pact-sentinel**
+**→ https://sunilblinkoninfra-cyber.github.io/pact-guard**
 
 No signup. No server. Paste your Pact contract and get results in under 5ms.
 
@@ -10,7 +10,7 @@ No signup. No server. Paste your Pact contract and get results in under 5ms.
 
 ## What It Does
 
-Pact Sentinel automatically analyzes Kadena Pact smart contracts for security vulnerabilities before deployment. It combines a **real recursive-descent parser** (not regex), **12 Pact-specific detection rules**, **Claude AI explanations**, and a **risk scoring system** into one tool.
+PactGuard automatically analyzes Kadena Pact smart contracts for security vulnerabilities before deployment. It combines a **real recursive-descent parser** (not regex), **12 Pact-specific detection rules**, **Gemini AI explanations**, and a **risk scoring system** into one tool.
 
 Paste a contract. Get findings with severity, location, risk explanation, and a corrected code snippet — in under a second.
 
@@ -19,8 +19,8 @@ Paste a contract. Get findings with severity, location, risk explanation, and a 
 ## Quick Start (30 seconds)
 
 ```bash
-git clone https://github.com/sunilblinkoninfra-cyber/pact-sentinel
-cd pact-sentinel
+git clone https://github.com/sunilblinkoninfra-cyber/pact-guard
+cd pact-guard
 
 # Instant analysis, no setup needed
 python cli.py tests/contracts/vulnerable-defi.pact --no-ai
@@ -78,7 +78,7 @@ Pact source → Tokenizer → Recursive Descent Parser → Typed AST
                                                           │
                                          Risk Scorer (compound multipliers)
                                                           │
-                                         Claude API (context-specific AI)
+                                         Gemini API (context-specific AI)
                                                           │
                           CLI · Web UI · JSON · Markdown · SARIF 2.1
 ```
@@ -101,7 +101,7 @@ Pact source → Tokenizer → Recursive Descent Parser → Typed AST
 - SARIF 2.1 output for GitHub Code Scanning
 
 ### AI Integration Quality (20%)
-- Claude API with context-specific prompts that reference actual function/table names
+- Gemini API with context-specific prompts that reference actual function/table names
 - `ai_explanation`, `attack_scenario`, `fixed_code` per finding
 - Graceful fallback when no API key
 
@@ -132,4 +132,4 @@ Pact source → Tokenizer → Recursive Descent Parser → Typed AST
 
 ## Repository
 
-https://github.com/sunilblinkoninfra-cyber/pact-sentinel
+https://github.com/sunilblinkoninfra-cyber/pact-guard

@@ -124,7 +124,7 @@ async function analyzeDocument(
   const pythonPath = config.get<string>('pythonPath', 'python3');
   const sentinelPath = config.get<string>('sentinelPath') ||
     findSentinelPath(context);
-  const apiKey = config.get<string>('anthropicApiKey', '');
+  const apiKey = config.get<string>('geminiApiKey', '');
   const useAI = config.get<boolean>('enableAI', false);
   const severityThreshold = config.get<string>('severityThreshold', 'medium');
   const skipRules = config.get<string[]>('skipRules', []);
@@ -147,7 +147,7 @@ async function analyzeDocument(
   if (skipRules.length) args.push('--skip-rules', skipRules.join(','));
 
   const env = { ...process.env };
-  if (apiKey) env.ANTHROPIC_API_KEY = apiKey;
+  if (apiKey) env.GEMINI_API_KEY = apiKey;
 
   try {
     const output = await runCommand(pythonPath, args, env);

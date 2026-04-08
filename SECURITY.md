@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Pact Sentinel itself, please open a GitHub Issue with the `security` label.
+If you discover a security vulnerability in PactGuard itself, please open a GitHub Issue with the `security` label.
 
 **Please do not report security vulnerabilities via public GitHub issues if they could enable attacks on users of the tool.**
 

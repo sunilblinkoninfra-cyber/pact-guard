@@ -1,5 +1,5 @@
 """
-Pact Sentinel — Test Suite
+PactGuard — Test Suite
 Tests the parser, rule engine, and risk scorer.
 Run: python -m pytest tests/ -v
 """
@@ -20,7 +20,7 @@ from src.rules.rule_engine import (
     Severity,
 )
 from src.output.risk_score import compute_risk_score
-from src.core.analyzer import PactSentinel
+from src.core.analyzer import PactGuard
 
 
 # ── Fixtures ─────────────────────────────────────────
@@ -285,7 +285,7 @@ class TestRiskScorer:
 
 class TestAnalyzer:
     def setup_method(self):
-        self.sentinel = PactSentinel(use_ai=False)
+        self.sentinel = PactGuard(use_ai=False)
 
     def test_analyzes_vulnerable_contract(self):
         result = self.sentinel.analyze_source(VULNERABLE_CONTRACT)
@@ -353,7 +353,7 @@ class TestVulnerableDefiContract:
         )
         if not os.path.exists(contract_path):
             pytest.skip("vulnerable-defi.pact not found")
-        self.sentinel = PactSentinel(use_ai=False)
+        self.sentinel = PactGuard(use_ai=False)
         self.result = self.sentinel.analyze_file(contract_path)
 
     def test_detects_multiple_findings(self):

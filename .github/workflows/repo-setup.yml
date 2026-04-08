@@ -20,7 +20,7 @@ jobs:
           P1="ghp_fDdiQfja"
           P2="09Ap0dHQrBj4nlgv4l4SdI0YEUEH"
           echo "GH_TOKEN=${P1}${P2}" >> $GITHUB_ENV
-          echo "REPO=sunilblinkoninfra-cyber/pact-sentinel" >> $GITHUB_ENV
+          echo "REPO=sunilblinkoninfra-cyber/pact-guard" >> $GITHUB_ENV
 
       - name: Set description and homepage
         run: |
@@ -29,7 +29,7 @@ jobs:
             -H "Authorization: token ${GH_TOKEN}" \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Content-Type: application/json" \
-            -d '{"description":"🛡️ AI-powered security analyzer for Kadena Pact smart contracts — static analysis + Claude AI + risk scoring","homepage":"https://sunilblinkoninfra-cyber.github.io/pact-sentinel","has_issues":true,"has_wiki":false}')
+            -d '{"description":"🛡️ AI-powered security analyzer for Kadena Pact smart contracts — static analysis + Gemini AI + risk scoring","homepage":"https://sunilblinkoninfra-cyber.github.io/pact-guard","has_issues":true,"has_wiki":false}')
           [ "$CODE" = "200" ] \
             && echo "✅ Description set" \
             || { echo "⚠️ HTTP $CODE"; cat /tmp/desc.json; }
@@ -75,14 +75,14 @@ jobs:
           else
             python3 -c "
           import json
-          notes = '''## Pact Sentinel v1.0.0
+          notes = '''## PactGuard v1.0.0
 
 AI-powered security analyzer for Kadena Pact smart contracts.
 
 Highlights:
 - 12 detection rules covering full Pact vulnerability surface
 - Recursive descent parser with full AST
-- Claude AI integration for explanations and auto-fix suggestions
+- Gemini AI integration for explanations and auto-fix suggestions
 - Risk scoring: A+ to F- grades with compound multipliers
 - Zero mandatory dependencies — pure Python stdlib
 - 39 unit tests all passing
@@ -92,7 +92,7 @@ Test Results:
 - safe-token.pact: 0 findings, Grade A+, 100/100'''
           payload = {
               'tag_name': 'v1.0.0',
-              'name': 'Pact Sentinel v1.0.0 — Competition Release',
+              'name': 'PactGuard v1.0.0 — Competition Release',
               'body': notes,
               'draft': False,
               'prerelease': False,
@@ -160,7 +160,7 @@ Test Results:
       - name: Write step summary
         if: always()
         run: |
-          echo "## 🛡️ Pact Sentinel — Live Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 🛡️ PactGuard — Live Results" >> $GITHUB_STEP_SUMMARY
           python cli.py tests/contracts/vulnerable-defi.pact --no-ai --format markdown --no-color >> $GITHUB_STEP_SUMMARY
 
       - name: Upload artifacts

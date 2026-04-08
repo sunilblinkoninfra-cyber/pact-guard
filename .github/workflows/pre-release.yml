@@ -52,9 +52,9 @@ jobs:
           python3 << 'PYEOF'
           import sys, json
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           r = s.analyze_file('tests/contracts/vulnerable-defi.pact')
           rs = r.risk_score
 
@@ -81,10 +81,10 @@ jobs:
           python3 << 'PYEOF'
           import sys
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
           from src.rules.rule_engine import Severity
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           r = s.analyze_file('tests/contracts/safe-token.pact')
 
           critical = [f for f in r.findings if f.severity == Severity.CRITICAL]
@@ -111,9 +111,9 @@ jobs:
           python3 << 'PYEOF'
           import sys, json
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           r = s.analyze_file('tests/contracts/vulnerable-defi.pact')
 
           # JSON schema
@@ -162,7 +162,7 @@ jobs:
           import sys, time, statistics
           sys.path.insert(0, '.')
           from src.parser.pact_parser import parse_contract
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
           with open('tests/contracts/vulnerable-defi.pact') as f:
               source = f.read()
@@ -189,7 +189,7 @@ jobs:
           print(f"  P99: {p99:.2f}ms")
 
           # Benchmark full analysis
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           analysis_times = []
           for _ in range(50):
               t0 = time.perf_counter()
@@ -215,7 +215,7 @@ jobs:
           python3 << 'PYEOF'
           import sys, time
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
           # Generate a large synthetic contract
           modules = []
@@ -240,7 +240,7 @@ jobs:
           large_contract = '\n'.join(modules)
           print(f"Large contract: {len(large_contract)} chars, ~{len(large_contract.split(chr(10)))} lines")
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           t0 = time.perf_counter()
           result = s.analyze_source(large_contract, filename="large-test.pact")
           elapsed = (time.perf_counter() - t0) * 1000
@@ -364,7 +364,7 @@ jobs:
 
           # Patterns that should NOT appear in source
           SECRET_PATTERNS = [
-              (r'sk-ant-api[0-9]+-[A-Za-z0-9]+', 'Anthropic API key'),
+              (r'AIzaapi[0-9]+-[A-Za-z0-9]+', 'Gemini API key'),
               (r'ghp_[A-Za-z0-9]{36}', 'GitHub PAT'),
               (r'AKIA[0-9A-Z]{16}', 'AWS Access Key'),
               (r'-----BEGIN RSA PRIVATE KEY-----', 'RSA Private Key'),
@@ -400,15 +400,15 @@ jobs:
               print("✅ No hardcoded secrets detected")
           PYEOF
 
-      - name: Scan src/ with pact-sentinel itself (meta-audit)
+      - name: Scan src/ with pact-guard itself (meta-audit)
         run: |
           python3 << 'PYEOF'
-          # Run pact-sentinel on the test contracts and verify results
+          # Run pact-guard on the test contracts and verify results
           import sys
           sys.path.insert(0, '.')
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
 
           # Analyze both test contracts
           for path in ['tests/contracts/vulnerable-defi.pact', 'tests/contracts/safe-token.pact']:
@@ -438,10 +438,10 @@ jobs:
           import sys, json
           sys.path.insert(0, '.')
           from src.rules.rule_engine import ALL_RULES
-          from src.core.analyzer import PactSentinel
+          from src.core.analyzer import PactGuard
 
           # Run analysis for live stats
-          s = PactSentinel(use_ai=False)
+          s = PactGuard(use_ai=False)
           r = s.analyze_file('tests/contracts/vulnerable-defi.pact')
           rs = r.risk_score
 
@@ -507,7 +507,7 @@ jobs:
         run: |
           VERSION="${{ needs.validation-gate.outputs.version }}"
           gh release create "v${VERSION}" \
-            --title "🛡️ Pact Sentinel v${VERSION}" \
+            --title "🛡️ PactGuard v${VERSION}" \
             --notes-file /tmp/release-notes.md \
             --latest \
             || echo "Release may already exist"

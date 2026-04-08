@@ -35,7 +35,7 @@ jobs:
                   'Authorization': f'token {TOKEN}',
                   'Accept': 'application/vnd.github.v3+json',
                   'Content-Type': 'application/json',
-                  'User-Agent': 'pact-sentinel-config',
+                  'User-Agent': 'pact-guard-config',
               })
               resp = urllib.request.urlopen(req, timeout=20)
               body = resp.read()
@@ -54,7 +54,7 @@ jobs:
 
           # 2. Create the index gist (stores request_id → gist_id mapping)
           status, gist = api('POST', '/gists', {
-              'description': 'Pact Sentinel Analysis Index',
+              'description': 'PactGuard Analysis Index',
               'public': False,
               'files': {'index.json': {'content': '{}'}}
           })
@@ -87,6 +87,6 @@ jobs:
           print(f'Index Gist ID: {index_gist_id}')
           print('Secrets set: GIST_TOKEN, INDEX_GIST_ID')
           print()
-          print('Next step: Add ANTHROPIC_API_KEY manually:')
+          print('Next step: Add GEMINI_API_KEY manually:')
           print(f'https://github.com/{REPO}/settings/secrets/actions')
           PYEOF

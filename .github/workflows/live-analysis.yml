@@ -35,7 +35,7 @@ jobs:
       - name: Decode and analyze contract
         id: analyze
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: |
           # Extract inputs from repository_dispatch or workflow_dispatch
@@ -56,27 +56,27 @@ jobs:
           echo "$CONTRACT_B64" | base64 -d > /tmp/contract.pact
           echo "Contract size: $(wc -c < /tmp/contract.pact) bytes"
 
-          # Build analysis command — support both OpenAI and Anthropic
+          # Build analysis command — support both OpenAI and Gemini
           AI_FLAG="--no-ai"
           
           # Check payload keys first (passed from web UI)
           OPENAI_FROM_PAYLOAD="${{ github.event.client_payload.openai_key }}"
-          ANTHROPIC_FROM_PAYLOAD="${{ github.event.client_payload.anthropic_key }}"
+          GEMINI_FROM_PAYLOAD="${{ github.event.client_payload.gemini_key }}"
           
           if [ -n "$OPENAI_FROM_PAYLOAD" ]; then
             export OPENAI_API_KEY="$OPENAI_FROM_PAYLOAD"
           fi
-          if [ -n "$ANTHROPIC_FROM_PAYLOAD" ]; then
-            export ANTHROPIC_API_KEY="$ANTHROPIC_FROM_PAYLOAD"
+          if [ -n "$GEMINI_FROM_PAYLOAD" ]; then
+            export GEMINI_API_KEY="$GEMINI_FROM_PAYLOAD"
           fi
           
           # Determine if AI is available
-          if [ "$USE_AI" = "true" ] && ([ -n "$OPENAI_API_KEY" ] || [ -n "$ANTHROPIC_API_KEY" ]); then
+          if [ "$USE_AI" = "true" ] && ([ -n "$OPENAI_API_KEY" ] || [ -n "$GEMINI_API_KEY" ]); then
             AI_FLAG=""
             if [ -n "$OPENAI_API_KEY" ]; then
               echo "AI provider: OpenAI (GPT-4o)"
             else
-              echo "AI provider: Anthropic (Claude)"
+              echo "AI provider: Gemini (Gemini)"
             fi
           fi
 
@@ -131,10 +131,10 @@ jobs:
 
           # Post to GitHub Gist
           gist_data = json.dumps({
-              "description": f"Pact Sentinel analysis {request_id}",
+              "description": f"PactGuard analysis {request_id}",
               "public": False,
               "files": {
-                  f"pact-sentinel-{request_id}.json": {
+                  f"pact-guard-{request_id}.json": {
                       "content": result_content
                   }
               }
@@ -146,7 +146,7 @@ jobs:
               headers={
                   'Authorization': f'token {token}',
                   'Content-Type': 'application/json',
-                  'User-Agent': 'pact-sentinel',
+                  'User-Agent': 'pact-guard',
                   'Accept': 'application/vnd.github.v3+json',
               }
           )
@@ -168,7 +168,7 @@ jobs:
                       f'https://api.github.com/gists/{index_gist_id}',
                       headers={
                           'Authorization': f'token {token}',
-                          'User-Agent': 'pact-sentinel',
+                          'User-Agent': 'pact-guard',
                           'Accept': 'application/vnd.github.v3+json',
                       }
                   )
@@ -186,7 +186,7 @@ jobs:
                       headers={
                           'Authorization': f'token {token}',
                           'Content-Type': 'application/json',
-                          'User-Agent': 'pact-sentinel',
+                          'User-Agent': 'pact-guard',
                           'Accept': 'application/vnd.github.v3+json',
                       },
                       method='PATCH'

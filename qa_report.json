@@ -1,0 +1,176 @@
+[
+  {
+    "schema_version": "1.0",
+    "tool": "pact-guard",
+    "generated_at": "2026-03-26T14:47:29.804932+00:00",
+    "analyzed_file": "tests\\contracts\\edge_cases\\edge-cases.pact",
+    "elapsed_seconds": 48.325,
+    "summary": "{\n  \"summary\": \"The `edge-cases` module in the Kadena Pact contract demonstrates several critical security anti-patterns and functional flaws related to capability management and multi-step transaction safety. While the module's explicit purpose appears to be showcasing these \\\"edge cases,\\\" its current implementation contains severe vulnerabilities that, if present in a production contract, would lead to unauthorized state modifications, data corruption, or functional failures. The module's governance is managed by a single \\\"admin-keyset,\\\" which is a standard pattern, but the application of this governance capability throughout the contract is inconsistent and flawed.\\n\\nThree critical \\\"Capability Missing Authorization Enforcement\\\" findings were identified. Firstly, in `public-indirect-mutator`, the function attempts to modify `state-table` via `private-mutator`, which correctly `require-capability (GOVERNANCE)`. However, `public-indirect-mutator` itself does not acquire this capability, meaning any direct call to it will fail, rendering the intended state modification path non-functional and indicating a misunderstanding of capability propagation. Secondly, the `unsafe-cross-chain-swap` defpact suffers from a similar authorization flaw; while its first step uses `with-capability (GOVERNANCE)`, the defpact itself lacks a top-level `require-capability`, allowing anyone to initiate a transaction that will subsequently fail if they lack governance. More critically, `unsafe-cross-chain-swap` is missing a `rollback` block in its first step, creating a severe data integrity risk where the `sender`'s state could be updated without the `receiver`'s state being updated if the second step fails, leading to an inconsistent ledger. Lastly, the `INNER-CAP` is an empty capability, providing no authorization enforcement despite being composed by `OUTER-CAP`. This renders `INNER-CAP` useless from a security perspective and represents a critical failure to implement any meaningful authorization.\\n\\nImmediate remediation is required across all identified critical issues. For `public-indirect-mutator`, either the function should acquire `GOVERNANCE` (e.g., `(with-capability (GOVERNANCE) (private-mutator id new-val))`) or be removed if it's not intended for public use. The `unsafe-cross-chain-swap` defpact must be refactored to include a `(require-capability (GOVERNANCE))` at its top level to control initiation, and critically, a `rollback` block must be added to the first step to ensure atomicity and prevent data corruption. For `INNER-CAP`, it should either be removed if it serves no purpose, or its body must be populated with appropriate authorization logic (e.g., `(enforce-keyset \\\"some-keyset\\\")`) to provide actual security guarantees. These changes are vital to establish a robust and secure capability-based access control model and ensure data consistency within the `edge-cases` module.\"\n}",
+    "risk_score": {
+      "raw_score": 97.5,
+      "security_score": 51.25,
+      "letter_grade": "F",
+      "label": "Critical Risk",
+      "compound_multiplier": 1.3,
+      "breakdown": {
+        "critical": 3,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "total": 3
+      }
+    },
+    "findings": [
+      {
+        "id": "F-001",
+        "rule_id": "R-005",
+        "title": "Capability Missing Authorization Enforcement",
+        "severity": "critical",
+        "confidence": 1.0,
+        "location": {
+          "module": "edge-cases",
+          "function": "GOVERNANCE",
+          "line": 2
+        },
+        "issue": "Capability `GOVERNANCE` has a body but contains no `enforce`, `enforce-guard`, or `require-capability` \u2014 grants access unconditionally.",
+        "risk": "A capability body without enforcement is a no-op gate. Any caller can acquire it, defeating Pact's capability security model entirely.",
+        "recommendation": "Add an `enforce-guard` or `enforce` check as the first expression in `GOVERNANCE`. The check must verify the caller has permission before the capability token is granted.",
+        "fixed_code_example": "(defcap GOVERNANCE ()\n  (enforce-keyset \"admin-keyset\"))",
+        "tags": [
+          "capability",
+          "enforce",
+          "authorization"
+        ],
+        "ai_explanation": "The static analysis finding for `GOVERNANCE` is a false positive. The `GOVERNANCE` capability correctly implements authorization using `(enforce-keyset \"admin-keyset\")`. This ensures that only holders of the 'admin-keyset' can acquire this critical administrative capability, making it properly secured and not granting unconditional access as stated in the finding. The capability's body is not empty.",
+        "attack_scenario": "N/A. The `GOVERNANCE` capability is correctly implemented and secured by `admin-keyset`. An attacker cannot acquire this capability without control of the 'admin-keyset', thus no direct exploit exists for this specific finding."
+      },
+      {
+        "id": "F-002",
+        "rule_id": "R-005",
+        "title": "Capability Missing Authorization Enforcement",
+        "severity": "critical",
+        "confidence": 1.0,
+        "location": {
+          "module": "edge-cases",
+          "function": "OUTER-CAP",
+          "line": 45
+        },
+        "issue": "Capability `OUTER-CAP` has a body but contains no `enforce`, `enforce-guard`, or `require-capability` \u2014 grants access unconditionally.",
+        "risk": "A capability body without enforcement is a no-op gate. Any caller can acquire it, defeating Pact's capability security model entirely.",
+        "recommendation": "Add an `enforce-guard` or `enforce` check as the first expression in `OUTER-CAP`. The check must verify the caller has permission before the capability token is granted.",
+        "fixed_code_example": "(defcap OUTER-CAP ()\n  @doc \"Outer capability\"\n  ;; Add explicit enforcement for OUTER-CAP to secure it.\n  (enforce-keyset \"outer-cap-keyset\")\n  (compose-capability (INNER-CAP))\n)",
+        "tags": [
+          "capability",
+          "enforce",
+          "authorization"
+        ],
+        "ai_explanation": "The `OUTER-CAP` capability is critically vulnerable because it relies on `(compose-capability (INNER-CAP))`. As `INNER-CAP` is empty and lacks any authorization logic, `OUTER-CAP` effectively grants access unconditionally. This bypasses Pact's capability security model, allowing unauthorized actions to any function or resource protected by `OUTER-CAP`.",
+        "attack_scenario": "An attacker can acquire `(OUTER-CAP)` without any authorization checks because its composed `INNER-CAP` is empty. If `OUTER-CAP` were used to guard a sensitive operation, such as `(with-capability (OUTER-CAP) (perform-critical-action))`, the attacker could execute `(perform-critical-action)` without proper permissions."
+      },
+      {
+        "id": "F-003",
+        "rule_id": "R-005",
+        "title": "Capability Missing Authorization Enforcement",
+        "severity": "critical",
+        "confidence": 1.0,
+        "location": {
+          "module": "edge-cases",
+          "function": "INNER-CAP",
+          "line": 50
+        },
+        "issue": "Capability `INNER-CAP` has a body but contains no `enforce`, `enforce-guard`, or `require-capability` \u2014 grants access unconditionally.",
+        "risk": "A capability body without enforcement is a no-op gate. Any caller can acquire it, defeating Pact's capability security model entirely.",
+        "recommendation": "Add an `enforce-guard` or `enforce` check as the first expression in `INNER-CAP`. The check must verify the caller has permission before the capability token is granted.",
+        "fixed_code_example": "(defcap INNER-CAP ()\n  @doc \"Inner empty capability\"\n  ;; Add explicit enforcement for INNER-CAP to secure it.\n  (enforce-keyset \"inner-cap-keyset\")\n)",
+        "tags": [
+          "capability",
+          "enforce",
+          "authorization"
+        ],
+        "ai_explanation": "The `INNER-CAP` is critically flawed as it contains no `enforce`, `enforce-guard`, or `require-capability` statements. This makes it an empty capability, granting unconditional access to anyone who attempts to acquire it. This completely undermines any security mechanism that relies on `INNER-CAP` directly or through composition, such as `OUTER-CAP`, leading to unauthorized access.",
+        "attack_scenario": "An attacker can acquire `(INNER-CAP)` without any authorization. If `INNER-CAP` is directly used to guard a function or is composed by another capability like `OUTER-CAP`, the attacker gains unauthorized access to any resources or operations protected by it, completely bypassing the intended security model."
+      }
+    ],
+    "ai_risk_narrative": "This contract exhibits critical security vulnerabilities primarily stemming from misconfigured capabilities. The `INNER-CAP` and `OUTER-CAP` capabilities are empty or compose an empty capability, rendering them useless for authorization and allowing unconditional access. Additionally, the contract contains an unsafe multi-step defpact and a function to create a bypassable guard, indicating a broader lack of robust security practices that could lead to asset loss or unauthorized state changes.",
+    "compound_risks": [
+      "Capability Chain Bypass: The `OUTER-CAP` composes `INNER-CAP`, but `INNER-CAP` is empty, rendering the entire capability chain ineffective and allowing unauthorized access to any functions protected by `OUTER-CAP`.",
+      "Defpact Inconsistency: The `unsafe-cross-chain-swap` defpact lacks a `rollback` for its first step, creating a risk of partial state updates and asset lock-up if subsequent steps fail, leading to an inconsistent ledger state.",
+      "Bypassable Guards: The `create-dummy-guard` function creates a `user-guard` that always evaluates to true, providing no security and allowing any action protected by it to be executed without authorization."
+    ]
+  },
+  {
+    "schema_version": "1.0",
+    "tool": "pact-guard",
+    "generated_at": "2026-03-26T14:48:02.167856+00:00",
+    "analyzed_file": "tests\\contracts\\edge_cases\\engine-limits.pact",
+    "elapsed_seconds": 32.363,
+    "summary": "{\n  \"summary\": \"The `engine-limits` module is intentionally designed as a testbed to explore the boundaries of automated security analysis tools, specifically focusing on control-flow deception and cross-module interaction limitations. It includes patterns that are structurally misleading or rely on external module behavior to test the robustness of security scanners. While serving a valuable purpose for tool development, these patterns introduce severe security vulnerabilities if deployed in a production environment without proper remediation.\\n\\nTwo critical vulnerabilities have been identified within the `engine-limits` module. The `deceive-control-flow` function is susceptible to \\\"State Mutation Without Capability Guard\\\" (R-001). This occurs because the `DEAD-CODE-CAP` capability, which `deceive-control-flow` relies upon, exhibits \\\"Capability Missing Authorization Enforcement.\\\" Specifically, the `enforce-guard` within `DEAD-CODE-CAP` is placed inside an `(if false ...)` block, making it unreachable and effectively nullifying its protective intent. As a result, the `(update ledger acc { 'balance: 99999.0 })` operation proceeds without a valid authorization check, allowing unauthorized modification of user balances within the `ledger` table.\\n\\nImmediate remediation is required for `DEAD-CODE-CAP` to ensure its authorization logic is directly and unconditionally enforced, thereby protecting the `ledger` table from unauthorized updates via `deceive-control-flow`. The `enforce-guard` statement must be moved out of the unreachable `if false` block to properly secure the capability. Furthermore, while not a direct finding within this module, the `call-external-module` function highlights a critical design risk: interactions with external modules like `free.other-module.unsafe-write` must be rigorously audited to prevent blind trust and ensure that any state changes triggered externally are subject to appropriate authorization and capability checks.\"\n}",
+    "risk_score": {
+      "raw_score": 70.0,
+      "security_score": 65.0,
+      "letter_grade": "D",
+      "label": "High Risk",
+      "compound_multiplier": 1.4,
+      "breakdown": {
+        "critical": 2,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "total": 2
+      }
+    },
+    "findings": [
+      {
+        "id": "F-001",
+        "rule_id": "R-005",
+        "title": "Capability Missing Authorization Enforcement",
+        "severity": "critical",
+        "confidence": 1.0,
+        "location": {
+          "module": "engine-limits",
+          "function": "GOVERNANCE",
+          "line": 4
+        },
+        "issue": "Capability `GOVERNANCE` has a body but contains no `enforce`, `enforce-guard`, or `require-capability` \u2014 grants access unconditionally.",
+        "risk": "A capability body without enforcement is a no-op gate. Any caller can acquire it, defeating Pact's capability security model entirely.",
+        "recommendation": "Add an `enforce-guard` or `enforce` check as the first expression in `GOVERNANCE`. The check must verify the caller has permission before the capability token is granted.",
+        "fixed_code_example": "(defcap GOVERNANCE ()\n  @doc \"Valid capability structure to prevent initial flagged errors\"\n  (enforce-keyset \"admin-keyset\"))",
+        "tags": [
+          "capability",
+          "enforce",
+          "authorization"
+        ],
+        "ai_explanation": "The static analysis finding indicates that the `GOVERNANCE` capability in the `engine-limits` module lacks proper authorization enforcement. If true, this would mean the capability, intended to control module-level actions, could be acquired by any caller without checks, completely undermining the module's security. However, the provided contract code for `GOVERNANCE` explicitly includes `(enforce-keyset \"admin-keyset\")`, suggesting this finding might be a false positive or a misinterpretation by the static analysis tool.",
+        "attack_scenario": "If the `GOVERNANCE` capability truly lacked enforcement as the finding suggests, an attacker could simply acquire `(GOVERNANCE)` without any keyset checks. This would grant them full administrative control over the module, allowing them to call any function requiring `GOVERNANCE`, such as potentially modifying module code or critical parameters, leading to a complete contract takeover."
+      },
+      {
+        "id": "F-002",
+        "rule_id": "R-001",
+        "title": "State Mutation Without Capability Guard",
+        "severity": "critical",
+        "confidence": 1.0,
+        "location": {
+          "module": "engine-limits",
+          "function": "let-alias-mutation",
+          "line": 51
+        },
+        "issue": "`let-alias-mutation` performs `update` on table `target-table` with no capability guard or enforce check.",
+        "risk": "Any account can call `let-alias-mutation` and modify `target-table` without authorization. For a state-modifying operation function this enables direct exploitation \u2014 unauthorized state changes, fund theft, or contract takeover.",
+        "recommendation": "`let-alias-mutation` is a state-modifying operation function. Define a `LET_ALIAS_MUTATION_AUTH` capability that enforces the caller's identity (via `enforce-guard`) and wrap the `update` call inside `(with-capability (LET_ALIAS_MUTATION_AUTH ...))`.",
+        "fixed_code_example": "(defcap UPDATE-LEDGER-BALANCE (account:string)\n  @doc \"Allows updating the balance of a specific account, requiring module governance.\"\n  (require-capability (GOVERNANCE)))\n\n(defun let-alias-mutation (acc:string)\n  \"Testing if Sentinel tracks variable reassignment before mutation\"\n  (with-capability (UPDATE-LEDGER-BALANCE acc)\n    (let ((target-table ledger))\n      (update target-table acc { 'balance: 0.0 }))))",
+        "tags": [
+          "access-control",
+          "capability",
+          "state-mutation"
+        ],
+        "ai_explanation": "The `let-alias-mutation` function in `engine-limits` directly updates the `ledger` table via an aliased variable `target-table` without requiring any capability. This bypasses Pact's capability-based security model, allowing any caller to modify account balances arbitrarily. The use of a `let` binding to alias the table name successfully evades simple static analysis checks that might only look for direct table references, demonstrating a critical vulnerability.",
+        "attack_scenario": "An attacker can call `(engine-limits.let-alias-mutation \"victim-account\")` with any string for `victim-account`. Because there is no capability check or authorization, the attacker can arbitrarily set the `balance` of `victim-account` to `0.0` in the `ledger` table, effectively draining or freezing funds without permission."
+      }
+    ],
+    "ai_risk_narrative": "The `engine-limits` module contains critical vulnerabilities, most notably allowing unauthorized state mutations in the `ledger` table via the `let-alias-mutation` function due to a missing capability guard. While the `GOVERNANCE` capability appears correctly implemented in the provided code, the static analysis finding highlights a potential discrepancy or a need for explicit capability usage in module functions. The contract also intentionally demonstrates other unflagged vulnerabilities related to control-flow deception and cross-module blindness, indicating a broader pattern of security weaknesses.",
+    "compound_risks": [
+      "The `let-alias-mutation` vulnerability, allowing unauthorized ledger updates, is compounded by the `deceive-control-flow` function, which also performs an unauthorized update, demonstrating a systemic lack of robust capability enforcement for state changes.",
+      "The `call-external-module` function, which calls an external `unsafe-write`, combined with the `let-alias-mutation` issue, highlights the module's susceptibility to both internal and external unauthorized state modifications, indicating a lack of a comprehensive security model."
+    ]
+  }
+]

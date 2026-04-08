@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pact Sentinel — Live Smart Contract Security Analyzer</title>
+<title>PactGuard — Live Smart Contract Security Analyzer</title>
 <meta name="description" content="Paste your Kadena Pact smart contract and get instant AI-powered security analysis. Free, open-source, no signup required.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
@@ -49,8 +49,8 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
 .editor-wrap{flex:1;position:relative;overflow:hidden}
 .line-nums{position:absolute;left:0;top:0;bottom:0;width:44px;background:var(--bg2);border-right:1px solid var(--border);padding-top:14px;pointer-events:none;overflow:hidden}
 .ln{height:20px;line-height:20px;font-size:11px;color:var(--text3);text-align:right;padding-right:8px}
-#hl{position:absolute;inset:0;left:44px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:20px;pointer-events:none;overflow:hidden;white-space:pre-wrap;word-break:break-all}
-#ed{position:absolute;inset:0;left:44px;padding:14px 16px;background:var(--bg);color:transparent;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:20px;border:none;outline:none;resize:none;caret-color:var(--accent);tab-size:2;z-index:2}
+#hl{position:absolute;inset:0;left:44px;padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:20px;pointer-events:none;overflow:hidden;white-space:pre-wrap;word-break:break-all;color:var(--text);background:var(--bg)}
+#ed{position:absolute;inset:0;left:44px;padding:14px 16px;background:transparent;color:transparent;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:20px;border:none;outline:none;resize:none;caret-color:var(--accent);tab-size:2;z-index:2}
 /* Token colors */
 .k{color:#c792ea}.d{color:#82aaff}.s{color:#c3e88d}.n{color:#f78c6c}.c{color:var(--text3);font-style:italic}.b{color:#f07178}.bi{color:#89ddff}.at{color:#ffcb6b}
 
@@ -137,8 +137,11 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
 .sec-lbl{font-size:9px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
 .sec-txt{font-size:11px;line-height:1.6;color:var(--text2)}
 .ai-badge{display:inline-block;font-size:9px;padding:1px 6px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);border-radius:3px;color:#a78bfa;margin-right:5px}
-.code-blk{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px;font-size:10.5px;line-height:1.6;overflow-x:auto;margin-top:3px}
+.code-blk{background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:9px;font-size:10.5px;line-height:1.6;overflow-x:auto;margin-top:3px;position:relative}
 .code-blk pre{color:var(--text)}
+.fix-badge{position:absolute;top:6px;right:6px;display:flex;align-items:center;gap:5px;z-index:10}
+.btn-fix{padding:4px 10px;background:var(--green);color:white;border:none;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;box-shadow:0 0 10px rgba(16,185,129,0.3);transition:all 0.2s}
+.btn-fix:hover{background:#0fa874;transform:scale(1.05)}
 .tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:7px}
 .tag{font-size:8.5px;padding:2px 5px;border-radius:3px;background:var(--bg3);border:1px solid var(--border);color:var(--text3)}
 
@@ -186,7 +189,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
 .toast.show{transform:translateY(0);opacity:1}
 
 /* Sample contracts area */
-#examplesView{display:none;padding:14px;overflow-y:auto}
+#examplesView{display:none;padding:14px;overflow-y:auto;flex:1}
 .sample-btn{width:100%;padding:7px 11px;border-radius:6px;text-align:left;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-family:'JetBrains Mono',monospace;font-size:11px;cursor:pointer;margin-bottom:5px;transition:all .13s;display:flex;justify-content:space-between;align-items:center}
 .sample-btn:hover{background:var(--bg4);border-color:var(--border2);color:var(--text)}
 .sample-tag{font-size:9px;padding:1px 6px;border-radius:3px}
@@ -206,13 +209,13 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
   <div class="logo">
     <div class="logo-icon">🛡</div>
     <div>
-      <div class="logo-name">Pact <span>Sentinel</span></div>
+      <div class="logo-name">Pact<span>Guard</span></div>
     </div>
   </div>
   <div class="nav-right">
     <span class="badge live">live</span>
     <span class="badge">v1.0.0</span>
-    <a class="nav-link" href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel" target="_blank">GitHub ↗</a>
+    <a class="nav-link" href="https://github.com/sunilblinkoninfra-cyber/pact-guard" target="_blank">GitHub ↗</a>
     <button class="btn-icon" id="settingsBtn" title="Settings">⚙</button>
   </div>
 </nav>
@@ -251,7 +254,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
     <div id="examplesView">
       <p style="font-size:11px;color:var(--text3);margin-bottom:10px">Load a sample contract:</p>
       <button class="sample-btn" onclick="loadSample('vulnerable')">
-        vulnerable-defi.pact <span class="sample-tag tag-vuln">23 vulns · F-</span>
+        vulnerable-defi.pact <span class="sample-tag tag-vuln">critical risk</span>
       </button>
       <button class="sample-btn" onclick="loadSample('safe')">
         safe-token.pact <span class="sample-tag tag-safe">0 vulns · A+</span>
@@ -259,6 +262,18 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
       <button class="sample-btn" onclick="loadSample('staking')">
         staking-pool.pact <span class="sample-tag tag-med">medium risk</span>
       </button>
+      <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
+      <p style="font-size:10px;color:var(--text3);margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">10 Common Vulnerabilities</p>
+      <button class="sample-btn" onclick="loadSample('c1')">1. Missing Capability <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c2')">2. Bad CEI Sequence <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c3')">3. Weak Guard <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c4')">4. Hardcoded Keys <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c5')">5. Capability Misuse <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c6')">6. Public Critical Fn <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c7')">7. Multi-Step Flaw <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c8')">8. Unenforced Paths <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c9')">9. Partial Security <span class="sample-tag tag-vuln">F</span></button>
+      <button class="sample-btn" onclick="loadSample('c10')">10. Secure Contract <span class="sample-tag tag-safe">A+</span></button>
     </div>
 
     <div class="editor-foot">
@@ -269,7 +284,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
       </div>
       <button class="btn-run" id="runBtn" onclick="runAnalysis()">
         <span id="runIcon">▶</span>
-        <span id="runTxt">Analyze</span>
+        <span id="runTxt">Run PactGuard</span>
       </button>
     </div>
   </div>
@@ -351,9 +366,9 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
       <div class="modal-hint">GPT-4o for AI explanations. Set <code>OPENAI_API_KEY</code> env var or paste here.</div>
     </div>
     <div class="field">
-      <label>Anthropic API Key (alternative)</label>
-      <input type="password" id="anthropicKeyInp" placeholder="sk-ant-api03-…">
-      <div class="modal-hint">Claude as alternative AI provider. One of the two keys is enough.</div>
+      <label>Gemini API Key (alternative)</label>
+      <input type="password" id="geminiKeyInp" placeholder="AIzaapi03-…">
+      <div class="modal-hint">Gemini as alternative AI provider. One of the two keys is enough.</div>
     </div>
 
     <div class="field">
@@ -382,7 +397,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
 
 <script>
 // ── Constants ─────────────────────────────────────────────────────
-const REPO = 'sunilblinkoninfra-cyber/pact-sentinel';
+const REPO = 'sunilblinkoninfra-cyber/pact-guard';
 const GH_API = 'https://api.github.com';
 
 // ── State ─────────────────────────────────────────────────────────
@@ -392,52 +407,66 @@ const S = {
   filter: 'all',
   loading: false,
   openaiKey:    localStorage.getItem('ps_openai_key')    || '',
-  anthropicKey: localStorage.getItem('ps_anthropic_key') || '',
+  geminiKey: localStorage.getItem('ps_gemini_key') || '',
   ghToken:      localStorage.getItem('ps_gh_token')      || '',
   mode:         localStorage.getItem('ps_mode')          || 'local',
-  get apiKey() { return this.openaiKey || this.anthropicKey; },
+  get apiKey() { return this.openaiKey || this.geminiKey; },
 };
 
 // ── Sample contracts ──────────────────────────────────────────────
 const SAMPLES = {
-vulnerable:`;;  vulnerable-defi.pact — INTENTIONALLY INSECURE — for testing only
-(define-keyset 'admin "admin")
+vulnerable:`;;  vulnerable-defi.pact — SECURED — post-audit implementation
+(define-keyset 'admin (read-keyset "admin"))
 
-(module vulnerable-defi-token 'admin
-  "DeFi token with multiple security vulnerabilities."
+(module vulnerable-defi-token GOVERNANCE
+  "Secure DeFi token following professional audit remediation."
+
+  (defcap GOVERNANCE ()
+    (enforce-guard (keyset-ref-guard 'admin)))
 
   (defschema account-schema balance:decimal guard:guard)
   (defschema config-schema total-supply:decimal paused:bool)
   (deftable accounts:{account-schema})
   (deftable config:{config-schema})
 
-  ;; VULN: empty capability body
-  (defcap TRANSFER (sender:string receiver:string amount:decimal))
+  ;; FIXED: Added @managed and manager for double-spend protection
+  (defcap TRANSFER (sender:string receiver:string amount:decimal)
+    @managed amount TRANSFER-mgr
+    (enforce-guard (at 'guard (read accounts sender)))
+    (enforce (> amount 0.0) "Amount must be positive")
+    (enforce (!= sender receiver) "Self-transfer prohibited"))
 
-  ;; VULN: no @managed — double-spend possible
-  (defcap DEBIT (sender:string amount:decimal)
-    (enforce (> amount 0.0) "Amount positive"))
+  (defun TRANSFER-mgr:decimal (managed:decimal requested:decimal)
+    (enforce (>= managed requested) "Exceeds authorized amount")
+    (- managed requested))
 
-  ;; VULN: anyone can init
-  (defun init (initial-supply:decimal)
-    (insert config "global" {'total-supply: initial-supply, 'paused: false}))
+  ;; FIXED: Added GOVERNANCE guard and initialization check
+  (defun init (initial-supply:decimal admin-guard:guard)
+    (with-capability (GOVERNANCE)
+      (with-default-read config "global" { 'total-supply: -1.0 } { 'total-supply := ts }
+        (enforce (= ts -1.0) "Already initialized")
+        (insert config "global" {'total-supply: initial-supply, 'paused: false})
+        (insert accounts "admin" {'balance: initial-supply, 'guard: admin-guard}))))
 
-  ;; VULN: CEI violation + no capability guard
+  ;; FIXED: CEI compliant — checks first, then mutations under capability
   (defun transfer (sender:string receiver:string amount:decimal)
-    (with-read accounts sender {'balance := s-bal}
+    (with-capability (TRANSFER sender receiver amount)
+      (with-read accounts sender {'balance := s-bal}
+        (enforce (>= s-bal amount) "Insufficient funds")
+        (update accounts sender {'balance: (- s-bal amount)}))
       (with-read accounts receiver {'balance := r-bal}
-        (update accounts sender {'balance: (- s-bal amount)})
-        (update accounts receiver {'balance: (+ r-bal amount)})
-        (enforce (>= s-bal amount) "Insufficient funds"))))
+        (update accounts receiver {'balance: (+ r-bal amount)}))))
 
-  ;; VULN: public unguarded mint
+  ;; FIXED: Now guarded by GOVERNANCE
   (defun mint (account:string amount:decimal)
-    (with-read accounts account {'balance := b}
-      (update accounts account {'balance: (+ b amount)})))
+    (with-capability (GOVERNANCE)
+      (with-read accounts account {'balance := b}
+        (update accounts account {'balance: (+ b amount)}))))
 
-  ;; VULN: unguarded admin
+  ;; FIXED: Now guarded by GOVERNANCE
   (defun pause ()
-    (update config "global" {'paused: true}))
+    (with-capability (GOVERNANCE)
+      (update config "global" {'paused: true})))
 
   (defun get-balance (account:string)
     (at 'balance (read accounts account))))`,
@@ -511,6 +540,105 @@ staking:`;;  staking-pool.pact — staking contract with some issues
 
   (defun get-stake (account:string)
     (at 'amount (read stakers account))))`,
+
+c1: `(module basic-vuln 'admin-keyset
+  (defschema account balance:decimal)
+  (deftable accounts:{account})
+
+  (defun transfer (from:string to:string amount:decimal)
+    (update accounts from { "balance": (- (at 'balance (read accounts from)) amount) })
+    (update accounts to { "balance": (+ (at 'balance (read accounts to)) amount) })
+  )
+)`,
+
+c2: `(module bad-sequence 'admin-keyset
+  (deftable accounts:{balance:decimal})
+
+  (defun withdraw (user:string amount:decimal)
+    (update accounts user { "balance": 0.0 })
+    (enforce (> amount 0.0) "Invalid amount")
+  )
+)`,
+
+c3: `(module weak-guard 'admin-keyset
+  (defun secure-action ()
+    (let ((guard (read-keyset "admin")))
+      "No enforcement applied"
+    )
+  )
+)`,
+
+c4: `(module hardcoded-key 'admin-keyset
+  (defconst ADMIN "admin-key")
+
+  (defun upgrade ()
+    (if (= ADMIN "admin-key")
+        (write config "version" "2.0")
+    )
+  )
+)`,
+
+c5: `(module cap-misuse 'admin-keyset
+  (defcap ADMIN ()
+    true
+  )
+
+  (defun dangerous ()
+    (with-capability (ADMIN)
+      (write system "mode" "unsafe")
+    )
+  )
+)`,
+
+c6: `(module public-critical 'admin-keyset
+  (deftable config:{value:string})
+
+  (defun set-config (key:string value:string)
+    (write config key value)
+  )
+)`,
+
+c7: `(module multi-step 'admin-keyset
+  (defpact transfer-pact (from to amount)
+    (step
+      (update accounts from { "balance": 0.0 })
+    )
+    (step
+      (update accounts to { "balance": amount })
+    )
+  )
+)`,
+
+c8: `(module conditional-bug 'admin-keyset
+  (defun risky (x:integer)
+    (if (> x 10)
+        (write logs "event" "high")
+        (write logs "event" "low")
+    )
+  )
+)`,
+
+c9: `(module partial-secure 'admin-keyset
+  (defun semi-safe (user:string)
+    (enforce (!= user "") "User required")
+    (write accounts user { "balance": 100.0 })
+  )
+)`,
+
+c10: `(module safe-contract 'admin-keyset
+  (defcap ADMIN ()
+    (enforce-keyset "admin-keyset")
+  )
+  (deftable accounts:{balance:decimal})
+
+  (defun secure-transfer (from:string to:string amount:decimal)
+    (with-capability (ADMIN)
+      (enforce (> amount 0.0) "Invalid amount")
+      (update accounts from { "balance": 0.0 })
+      (update accounts to { "balance": amount })
+    )
+  )
+)`
 };
 
 // ── Init ─────────────────────────────────────────────────────────
@@ -534,7 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('modeSelect').addEventListener('change', e => {
     document.getElementById('modeHint').textContent = e.target.value === 'local'
       ? 'Runs pattern matching directly in your browser. No server, no data sent anywhere.'
-      : 'Triggers a GitHub Actions workflow for full analysis + Claude AI. Requires GitHub token.';
+      : 'Triggers a GitHub Actions workflow for full analysis + Gemini AI. Requires GitHub token.';
   });
   document.addEventListener('keydown', e => { if (e.key==='Escape') closeSettings(); });
 
@@ -665,12 +793,15 @@ async function analyzeLocal(source) {
   // Scan functions
   const fnRegex = /\(defun\s+(\S+)\s*\(/g;
   const capRegex = /\(defcap\s+(\S+)\s*\(/g;
+  const pactRegex = /\(defpact\s+(\S+)\s*\(/g;
+  
   const allFns = [];
+  const caps = [];
+  const pacts = [];
   let m;
 
   while ((m = fnRegex.exec(source)) !== null) {
     const fnName = m[1];
-    const fnStart = source.lastIndexOf('\n', m.index)+1;
     const fnLineNum = source.slice(0,m.index).split('\n').length;
     // Get function body until next top-level paren
     let depth=0, end=m.index, i=m.index;
@@ -679,12 +810,25 @@ async function analyzeLocal(source) {
       else if(source[i]===')') { depth--; if(depth===0){end=i;break;} }
       i++;
     }
-    const body = source.slice(m.index, end);
+    const body = source.slice(m.index, end+1);
     allFns.push({name:fnName, line:fnLineNum, body});
   }
 
+  // Scan defpact
+  while ((m = pactRegex.exec(source)) !== null) {
+    const pactName = m[1];
+    const pactLine = source.slice(0,m.index).split('\n').length;
+    let depth=0, end=m.index, i=m.index;
+    while(i<source.length && (depth>0||i===m.index)) {
+      if(source[i]==='(') depth++;
+      else if(source[i]===')') { depth--; if(depth===0){end=i;break;} }
+      i++;
+    }
+    const body = source.slice(m.index, end+1);
+    pacts.push({name:pactName, line:pactLine, body});
+  }
+
   // Scan defcap
-  const caps = [];
   while ((m = capRegex.exec(source)) !== null) {
     const capName = m[1];
     const capLine = source.slice(0,m.index).split('\n').length;
@@ -719,8 +863,10 @@ async function analyzeLocal(source) {
       }
     }
 
+    const hasAmount = /amount|qty\b|value|balance|decimal/i.test(cap.body);
+
     // R-012: transfer cap without @managed
-    if (isTransfer && !isManaged && !isEvent) {
+    if (isTransfer && !isManaged && !isEvent && hasAmount) {
       finding('R-012','Transfer Capability Missing @managed','high',
         loc(cap.line, cap.name, modName),
         `Capability \`${cap.name}\` is a transfer capability but lacks \`@managed\`. Same authorization reusable multiple times.`,
@@ -731,15 +877,75 @@ async function analyzeLocal(source) {
     }
   }
 
+  for (const p of pacts) {
+    const hasRollback = /\(step-with-rollback/.test(p.body);
+    const hasResume = /\(resume\b/.test(p.body);
+    const hasYield = /\(yield\b/.test(p.body);
+    const checksChainId = /chain-id/.test(p.body);
+    const checksPactId = /pact-id/.test(p.body);
+    
+    if (!hasRollback) {
+      finding('VP-07','Missing Rollback Handler on Asset Transfer','high',
+        loc(p.line, p.name, modName),
+        `Defpact \`${p.name}\` lacks \`step-with-rollback\`.`,
+        'If subsequent steps fail, funds are permanently locked.',
+        'Convert step to step-with-rollback for any step that moves or locks assets.',
+        '', ['defpact','rollback']);
+    }
+    
+    if (!checksChainId && (hasResume || hasYield || p.body.split(/\(step/).length > 1)) {
+      finding('VP-10','Cross-Chain Replay Missing Chain-ID Validation','high',
+        loc(p.line, p.name, modName),
+        `Pact \`${p.name}\` does not enforce chain-id validation between steps.`,
+        'Execution can be maliciously replayed across incompatible chains.',
+        'Verify target and source chain-id during yield/resume.',
+        '', ['cross-chain','resume']);
+    }
+    
+    if (!checksPactId && p.body.split(/\(step/).length > 2) {
+      finding('VP-09','Step Skip / Replay Vulnerability','high',
+        loc(p.line, p.name, modName),
+        `Pact \`${p.name}\` does not explicitly manage or check pact-id.`,
+        'Step ordering could potentially be bypassed in complex integrations.',
+        'Bind transient capabilities or state to (pact-id).',
+        '', ['defpact','pact-id']);
+    }
+    
+    const hasAmountParams = /\(\s*(amount|qty|value)\s*:/.test(p.body.split(')')[0]);
+    if (hasAmountParams && p.body.split(/\(step/).length > 2) {
+      finding('VP-08','TOCTOU Across Defpact Steps','medium',
+        loc(p.line, p.name, modName),
+        `Parameters supplied at Step 0 are consumed in later steps of \`${p.name}\`.`,
+        'Conditions may change before later steps execute asynchronously.',
+        'Re-validate critical conditions at the start of each step.',
+        '', ['toctou']);
+    }
+  }
+
+  const enforceOneMatch = source.match(/\(\s*enforce-one\b[^\]]+\[[^\]]*\(\s*enforce\s+true\b/i);
+  if (enforceOneMatch) {
+    const line = source.slice(0, enforceOneMatch.index).split('\n').length;
+    finding('VP-12','Always-True Branch in enforce-one','critical',
+      loc(line, 'guard', modName),
+      `Found an always-true enforce branch (\`(enforce true...)\`) inside \`enforce-one\`.`,
+      'Evaluates true immediately, bypassing security checks and granting unauthorized access.',
+      'Remove the trivially satisfiable condition from the guard.',
+      '', ['auth','enforce-one','bypass']);
+  }
+
   for (const fn of allFns) {
     const hasMutation = /\b(update|insert|delete)\b/.test(fn.body);
     const hasCap = /with-capability|require-capability/.test(fn.body);
-    const hasEnforce = /\(enforce\b/.test(fn.body);
+    const hasEnforce = /\b(enforce[-a-z]*|require[-a-z]*)\b/.test(fn.body);
     const isAdmin = /init|admin|upgrade|migrate|pause|unpause|mint|burn/i.test(fn.name);
     const hasSensitiveTable = /accounts?|balance|token|ledger|vault|pool/i.test(fn.body);
+    const isPrivate = fn.name.startsWith('_') || fn.name.includes('internal');
+
+    // FP Calibration: Detect delegation to security managers or private helpers
+    const delegatesState = /\b_[a-zA-Z-]+\b/.test(fn.body) || /\b(security-manager|auth)\.(enforce|require)[-a-z]*\b/.test(fn.body);
 
     // R-001: mutation without capability
-    if (hasMutation && !hasCap && !hasEnforce) {
+    if (hasMutation && !hasCap && !hasEnforce && !isPrivate && !delegatesState) {
       finding('R-001','State Mutation Without Capability Guard','critical',
         loc(fn.line, fn.name, modName),
         `\`${fn.name}\` mutates state without any capability guard or enforce check.`,
@@ -750,7 +956,7 @@ async function analyzeLocal(source) {
     }
 
     // R-007: unguarded admin function
-    if (isAdmin && !hasCap && !hasEnforce) {
+    if (isAdmin && !hasCap && !hasEnforce && !isPrivate) {
       finding('R-007','Unguarded Administrative Function','critical',
         loc(fn.line, fn.name, modName),
         `Administrative function \`${fn.name}\` lacks any capability guard. Publicly callable by anyone.`,
@@ -761,7 +967,7 @@ async function analyzeLocal(source) {
     }
 
     // R-004: public function mutates sensitive state
-    if (hasMutation && !hasCap && hasSensitiveTable) {
+    if (hasMutation && !hasCap && !hasEnforce && hasSensitiveTable && !isPrivate && !delegatesState) {
       finding('R-004','Public Function Directly Modifies Sensitive State','high',
         loc(fn.line, fn.name, modName),
         `\`${fn.name}\` mutates account/balance tables without capability protection.`,
@@ -772,9 +978,10 @@ async function analyzeLocal(source) {
     }
 
     // R-006: CEI violation — detect update before enforce in same function
-    const updatePos = fn.body.search(/\(update\b|\(insert\b/);
-    const enforcePos = fn.body.search(/\(enforce\b/);
-    if (updatePos > 0 && enforcePos > 0 && updatePos < enforcePos && !hasCap) {
+    // FP Case 2: Only trigger CEI violations if the mutation is on a sensitive table (counters are safe to reorder)
+    const sensitiveUpdatePos = fn.body.search(/\(update\s+(accounts?|balance|token|ledger|vault|pool)\b/i);
+    const enforcePos = fn.body.search(/\benforce[-a-z]*\b/);
+    if (sensitiveUpdatePos > 0 && enforcePos > 0 && sensitiveUpdatePos < enforcePos && !hasCap) {
       finding('R-006','State Change Before Authorization Check (CEI Violation)','high',
         loc(fn.line, fn.name, modName),
         `In \`${fn.name}\`: state mutation appears BEFORE enforce check. Classic CEI violation.`,
@@ -817,7 +1024,7 @@ async function analyzeLocal(source) {
   const bd = deduped.reduce((a,f) => { a[f.severity]=(a[f.severity]||0)+1; return a; }, {critical:0,high:0,medium:0,low:0});
 
   return {
-    schema_version:'1.0', tool:'pact-sentinel',
+    schema_version:'1.0', tool:'pact-guard',
     generated_at: new Date().toISOString(),
     analyzed_file: 'contract.pact',
     elapsed_seconds: ((performance.now()-t0)/1000).toFixed(3),
@@ -854,9 +1061,9 @@ async function analyzeViaGitHub(source) {
       client_payload: {
         contract_b64: b64,
         request_id: reqId,
-        use_ai: !!(S.openaiKey || S.anthropicKey),
+        use_ai: !!(S.openaiKey || S.geminiKey),
         openai_key: S.openaiKey || '',
-        anthropic_key: S.anthropicKey || '',
+        gemini_key: S.geminiKey || '',
       }
     })
   });
@@ -955,9 +1162,14 @@ function renderFindings(findings) {
   list.innerHTML = filtered.map((f,i) => {
     const loc = f.location||{};
     const fix = (f.fixed_code_example||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    const aiBlock = f.ai_explanation ? `<div class="sec"><div class="sec-lbl">AI Analysis</div><div class="sec-txt"><span class="ai-badge">claude</span>${f.ai_explanation}</div></div>` : '';
+    const aiBlock = f.ai_explanation ? `<div class="sec"><div class="sec-lbl">AI Analysis</div><div class="sec-txt"><span class="ai-badge">gemini</span>${f.ai_explanation}</div></div>` : '';
     const attackBlock = f.attack_scenario ? `<div class="sec"><div class="sec-lbl">Attack Scenario</div><div class="sec-txt">${f.attack_scenario}</div></div>` : '';
-    const fixBlock = fix ? `<div class="sec"><div class="sec-lbl">Fixed Code</div><div class="code-blk"><pre>${fix}</pre></div></div>` : '';
+    const fixBlock = fix ? `<div class="sec"><div class="sec-lbl">Fixed Code</div><div class="code-blk" onclick="event.stopPropagation()">
+      <div class="fix-badge">
+        <button class="btn-fix" onclick="applyFix('${f.id}')">Apply Fix</button>
+      </div>
+      <pre>${fix}</pre>
+    </div></div>` : '';
     const tags = (f.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
     return `<div class="card ${f.severity}" style="animation-delay:${i*0.04}s" data-line="${loc.line||0}" onclick="toggleCard(this)">
       <div class="card-hdr">
@@ -998,6 +1210,69 @@ function jumpToLine(line) {
   document.getElementById('hl').scrollTop = ed.scrollTop;
 }
 
+function applyFix(findingId) {
+  console.log('Applying fix for finding:', findingId);
+  const f = S.findings.find(x => x.id === findingId);
+  if (!f) { console.error('Finding not found:', findingId); return; }
+  if (!f.fixed_code_example) { console.error('No fix code for:', findingId); return; }
+  
+  const ed = document.getElementById('ed');
+  let source = ed.value;
+  let replaced = false;
+
+  if (f.location && f.location.function && f.location.function !== '?') {
+    const fn = f.location.function;
+    let rx;
+    if (fn === 'define-keyset') {
+      rx = /\(define-keyset\b/;
+    } else {
+      const safeFn = fn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      rx = new RegExp(`\\((defun|defcap|defpact)\\s+${safeFn}\\b`);
+    }
+    
+    let m = rx.exec(source);
+    if (f.location.line && f.location.line > 0) {
+      const lines = source.split('\n');
+      let charIdx = 0;
+      for (let i = 0; i < Math.min(f.location.line - 1, lines.length); i++) {
+        charIdx += lines[i].length + 1;
+      }
+      let lineMatch = rx.exec(source.slice(charIdx));
+      if (lineMatch) m = { index: charIdx + lineMatch.index };
+    }
+    
+    if (m) {
+      let depth=0, end=m.index, i=m.index;
+      while(i<source.length && (depth>0||i===m.index)) {
+        if(source[i]==='(') depth++;
+        else if(source[i]===')') { depth--; if(depth===0){end=i;break;} }
+        i++;
+      }
+      if (end > m.index) {
+        let fixCode = f.fixed_code_example.trim();
+        fixCode = fixCode.replace(/^```[a-z]*\r?\n/, '').replace(/\r?\n```$/, '');
+        ed.value = source.slice(0, m.index) + fixCode + source.slice(end + 1);
+        replaced = true;
+      }
+    }
+  }
+
+  if (!replaced) {
+    if (confirm('Could not isolate the faulty function block. Replace the entire editor contents with the fix?')) {
+      let fixCode = f.fixed_code_example.trim();
+      ed.value = fixCode.replace(/^```[a-z]*\r?\n/, '').replace(/\r?\n```$/, '');
+    } else {
+      return;
+    }
+  }
+  
+  updateLineNums();
+  highlight();
+  updateFooter();
+  toast('Success: Fix implemented in editor');
+  console.log('Fix successfully applied to editor.');
+}
+
 // ── UI helpers ────────────────────────────────────────────────────
 function setLoading(on) {
   const btn = document.getElementById('runBtn');
@@ -1035,7 +1310,7 @@ function exportJSON() {
   if (!S.report) { toast('No report to export'); return; }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(S.report,null,2)],{type:'application/json'}));
-  a.download = 'pact-sentinel-report.json';
+  a.download = 'pact-guard-report.json';
   a.click();
   toast('Report exported');
 }
@@ -1043,7 +1318,7 @@ function exportJSON() {
 // ── Settings ──────────────────────────────────────────────────────
 function openSettings() {
   document.getElementById('openaiKeyInp').value    = S.openaiKey;
-  document.getElementById('anthropicKeyInp').value = S.anthropicKey;
+  document.getElementById('geminiKeyInp').value = S.geminiKey;
   document.getElementById('ghTokenInp').value      = S.ghToken;
   document.getElementById('modeSelect').value      = S.mode;
   document.getElementById('settingsModal').style.display='flex';
@@ -1055,15 +1330,15 @@ function closeSettings() {
 
 function saveSettings() {
   S.openaiKey    = document.getElementById('openaiKeyInp').value;
-  S.anthropicKey = document.getElementById('anthropicKeyInp').value;
+  S.geminiKey = document.getElementById('geminiKeyInp').value;
   S.ghToken      = document.getElementById('ghTokenInp').value;
   S.mode         = document.getElementById('modeSelect').value;
   localStorage.setItem('ps_openai_key',    S.openaiKey);
-  localStorage.setItem('ps_anthropic_key', S.anthropicKey);
+  localStorage.setItem('ps_gemini_key', S.geminiKey);
   localStorage.setItem('ps_gh_token',      S.ghToken);
   localStorage.setItem('ps_mode',          S.mode);
   closeSettings();
-  const provider = S.openaiKey ? 'OpenAI GPT-4o' : S.anthropicKey ? 'Anthropic Claude' : 'browser-only';
+  const provider = S.openaiKey ? 'OpenAI GPT-4o' : S.geminiKey ? 'Gemini Gemini' : 'browser-only';
   toast('Settings saved — AI provider: ' + provider);
 }
 

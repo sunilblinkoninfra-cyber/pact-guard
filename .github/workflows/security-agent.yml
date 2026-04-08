@@ -15,7 +15,7 @@ permissions:
   actions: read
 
 jobs:
-  # ── Job 1: Run Pact Sentinel on all contracts ────────────────────
+  # ── Job 1: Run PactGuard on all contracts ────────────────────
   contract-scan:
     name: 🛡️ Scan All Pact Contracts
     runs-on: ubuntu-latest
@@ -66,7 +66,7 @@ jobs:
         if: always()
         with:
           sarif_file: results.sarif
-          category: pact-sentinel-contracts
+          category: pact-guard-contracts
 
       - name: Upload scan artifacts
         uses: actions/upload-artifact@v4
@@ -175,8 +175,8 @@ jobs:
           import sys
           sys.path = [p for p in sys.path if 'site-packages' not in p] + ['.']
           try:
-              from src.core.analyzer import PactSentinel
-              s = PactSentinel(use_ai=False)
+              from src.core.analyzer import PactGuard
+              s = PactGuard(use_ai=False)
               r = s.analyze_source("(module m 'a (defun f () true))")
               print(f"✅ Zero-dep core works: {len(r.findings)} findings")
           except ImportError as e:
@@ -206,7 +206,7 @@ jobs:
           import re, subprocess
 
           PATTERNS = [
-              (r'sk-ant-api[0-9]+-[A-Za-z0-9]{40,}', 'Anthropic API key'),
+              (r'AIzaapi[0-9]+-[A-Za-z0-9]{40,}', 'Gemini API key'),
               (r'AKIA[0-9A-Z]{16}', 'AWS Access Key ID'),
               (r'-----BEGIN (?:RSA |EC )?PRIVATE KEY-----', 'Private Key'),
               (r'["\']password["\']\s*:\s*["\'][^"\']{8,}["\']', 'Hardcoded password'),

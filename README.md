@@ -1,19 +1,19 @@
-# 🛡️ Pact Sentinel
+# 🛡️ PactGuard
 
 <div align="center">
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
-[![Tests](https://img.shields.io/github/actions/workflow/status/sunilblinkoninfra-cyber/pact-sentinel/repo-setup.yml?branch=main&label=tests&style=flat-square)](https://github.com/sunilblinkoninfra-cyber/pact-sentinel/actions)
-[![License](https://img.shields.io/github/license/sunilblinkoninfra-cyber/pact-sentinel?style=flat-square)](LICENSE)
+[![Tests](https://img.shields.io/github/actions/workflow/status/sunilblinkoninfra-cyber/pact-guard/repo-setup.yml?branch=main&label=tests&style=flat-square)](https://github.com/sunilblinkoninfra-cyber/pact-guard/actions)
+[![License](https://img.shields.io/github/license/sunilblinkoninfra-cyber/pact-guard?style=flat-square)](LICENSE)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-yellow?style=flat-square)](https://python.org)
 [![Zero Deps](https://img.shields.io/badge/dependencies-zero-brightgreen?style=flat-square)](pyproject.toml)
 [![Rules](https://img.shields.io/badge/detection_rules-12-red?style=flat-square)](src/rules/rule_engine.py)
 
 **AI-powered security analyzer for Kadena Pact smart contracts.**
 
-Combines recursive descent static analysis with Claude AI to detect vulnerabilities, explain risks, and suggest fixes.
+Combines recursive descent static analysis with Gemini AI to detect vulnerabilities, explain risks, and suggest fixes.
 
-[📖 Docs](https://sunilblinkoninfra-cyber.github.io/pact-sentinel) · [🚀 Releases](https://github.com/sunilblinkoninfra-cyber/pact-sentinel/releases) · [🐛 Issues](https://github.com/sunilblinkoninfra-cyber/pact-sentinel/issues)
+[📖 Docs](https://sunilblinkoninfra-cyber.github.io/pact-guard) · [🚀 Releases](https://github.com/sunilblinkoninfra-cyber/pact-guard/releases) · [🐛 Issues](https://github.com/sunilblinkoninfra-cyber/pact-guard/issues)
 
 </div>
 
@@ -21,7 +21,7 @@ Combines recursive descent static analysis with Claude AI to detect vulnerabilit
 
 ## Overview
 
-Pact Sentinel builds a typed AST from your contract, tracks capability flows, identifies vulnerability patterns, then uses Claude AI to explain exactly why something is dangerous and how to fix it — all in under a second.
+PactGuard builds a typed AST from your contract, tracks capability flows, identifies vulnerability patterns, then uses Gemini AI to explain exactly why something is dangerous and how to fix it — all in under a second.
 
 ```
 $ python cli.py tests/contracts/vulnerable-defi.pact --no-ai
@@ -70,7 +70,7 @@ $ python cli.py tests/contracts/vulnerable-defi.pact --no-ai
 └──────────┬──────────────────────────────────┬───────────────────┘
            ▼                                  ▼
 ┌─────────────────────┐          ┌──────────────────────────┐
-│   RISK SCORER       │          │   AI LAYER (Claude API)  │
+│   RISK SCORER       │          │   AI LAYER (Gemini API)  │
 │   0–100 score       │          │   Deep explanations      │
 │   A+ → F- grades    │          │   Attack scenarios       │
 │   Compound risk     │          │   Auto-fix code snippets │
@@ -91,14 +91,14 @@ $ python cli.py tests/contracts/vulnerable-defi.pact --no-ai
 Zero mandatory dependencies — pure Python 3.9+ stdlib.
 
 ```bash
-git clone https://github.com/sunilblinkoninfra-cyber/pact-sentinel.git
-cd pact-sentinel
+git clone https://github.com/sunilblinkoninfra-cyber/pact-guard.git
+cd pact-guard
 
 # Analyze immediately (no setup needed)
 python cli.py tests/contracts/vulnerable-defi.pact --no-ai
 
-# With Claude AI enrichment
-export ANTHROPIC_API_KEY=sk-ant-...
+# With Gemini AI enrichment
+export GEMINI_API_KEY=AIza...
 python cli.py mytoken.pact
 
 # Output formats
@@ -172,7 +172,7 @@ Co-occurring vulnerabilities apply compound multipliers (up to 1.5×) to the tot
 
 ## AI Integration
 
-Set `ANTHROPIC_API_KEY` and each finding gains:
+Set `GEMINI_API_KEY` and each finding gains:
 
 - **`ai_explanation`** — technical explanation specific to your code
 - **`attack_scenario`** — concrete exploit walkthrough
@@ -208,7 +208,7 @@ python cli.py [file] [options]
 
 ```yaml
 # .github/workflows/security.yml
-- name: Pact Sentinel scan
+- name: PactGuard scan
   run: |
     python cli.py --dir contracts \
       --format sarif --output results.sarif \
@@ -225,15 +225,15 @@ python cli.py [file] [options]
 ## Project Structure
 
 ```
-pact-sentinel/
+pact-guard/
 ├── cli.py                      CLI entry point
 ├── web_app.py                  Flask web server
 ├── src/
 │   ├── parser/                 Tokenizer + AST builder
 │   ├── rules/                  12 detection rules
-│   ├── ai/                     Claude API integration
+│   ├── ai/                     Gemini API integration
 │   ├── output/                 Risk scorer + reporters
-│   └── core/                   PactSentinel orchestrator
+│   └── core/                   PactGuard orchestrator
 ├── web/index.html              Web UI
 ├── docs/                       GitHub Pages site
 ├── tests/
@@ -251,7 +251,7 @@ pact-sentinel/
 |-----------|--------|----------|
 | Security Coverage | 30% | 12 rules · accurate detection · zero false positives on safe contract |
 | Technical Quality | 25% | Typed AST · BaseRule interface · 39 tests · SARIF · zero deps |
-| AI Integration | 20% | Claude explanations · attack scenarios · auto-fix code |
+| AI Integration | 20% | Gemini explanations · attack scenarios · auto-fix code |
 | Usability | 15% | CLI + Web UI + Python API · 4 output formats · CI integration |
 | Innovation | 10% | Compound risk multipliers · automated patches · VSCode extension |
 
@@ -261,7 +261,7 @@ pact-sentinel/
 
 ## License
 
-[MIT](LICENSE) © 2024 Pact Sentinel Contributors
+[MIT](LICENSE) © 2024 PactGuard Contributors
 
 ---
 

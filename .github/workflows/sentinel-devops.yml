@@ -1,0 +1,32 @@
+name: PactGuard DevOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-gate:
+    name: "Automated Pact Security Analysis"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Run QA Tester Agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          # Run the QA Tester Agent on all contracts. 
+          # We use || true so we don't fail immediately, allowing the DevOps Agent to evaluate the report.
+          python src/agents/qa_tester.py . || true
+
+      - name: Run DevOps Agent (Evaluate & Block)
+        run: |
+          # Fails the pipeline if Critical/High vulnerabilities are found
+          python src/agents/devops_agent.py qa_report.json

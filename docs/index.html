@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pact Sentinel — AI-Powered Security Analyzer for Kadena</title>
+<title>PactGuard — AI-Powered Security Analyzer for Kadena</title>
 <meta name="description" content="Open-source static analysis + AI reasoning tool for detecting vulnerabilities in Kadena Pact smart contracts.">
-<meta property="og:title" content="Pact Sentinel — Pact Smart Contract Security">
-<meta property="og:description" content="12 detection rules · Claude AI explanations · Risk scoring · Zero dependencies">
-<meta property="og:image" content="https://sunilblinkoninfra-cyber.github.io/pact-sentinel/og-image.png">
+<meta property="og:title" content="PactGuard — Pact Smart Contract Security">
+<meta property="og:description" content="12 detection rules · Gemini AI explanations · Risk scoring · Zero dependencies">
+<meta property="og:image" content="https://sunilblinkoninfra-cyber.github.io/pact-guard/og-image.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
@@ -119,14 +119,14 @@ footer a{color:var(--text2)}
 
 <!-- Nav -->
 <nav>
-  <div class="nav-logo">Pact <span>Sentinel</span></div>
+  <div class="nav-logo">Pact<span>Guard</span></div>
   <div class="nav-links">
     <a href="#features">Features</a>
     <a href="#rules">Rules</a>
     <a href="#quickstart">Quick Start</a>
     <a href="#evaluation">Evaluation</a>
-    <a href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel" target="_blank">GitHub</a>
-    <a href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel/releases" class="nav-cta" target="_blank">v1.0.0</a>
+    <a href="https://github.com/sunilblinkoninfra-cyber/pact-guard" target="_blank">GitHub</a>
+    <a href="https://github.com/sunilblinkoninfra-cyber/pact-guard/releases" class="nav-cta" target="_blank">v1.0.0</a>
   </div>
 </nav>
 
@@ -135,9 +135,9 @@ footer a{color:var(--text2)}
   <div>
     <div class="hero-badge">Kadena · Pact Language · Competition Release</div>
     <h1>Security Analyzer for<br><span>Pact Smart Contracts</span></h1>
-    <p class="hero-sub">Static analysis + Claude AI reasoning to detect vulnerabilities in Kadena Pact contracts. 12 detection rules, zero dependencies, structured findings with automated fix suggestions.</p>
+    <p class="hero-sub">Static analysis + Gemini AI reasoning to detect vulnerabilities in Kadena Pact contracts. 12 detection rules, zero dependencies, structured findings with automated fix suggestions.</p>
     <div class="hero-actions">
-      <a class="btn-primary" href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel" target="_blank">⭐ View on GitHub</a>
+      <a class="btn-primary" href="https://github.com/sunilblinkoninfra-cyber/pact-guard" target="_blank">⭐ View on GitHub</a>
       <a class="btn-secondary" href="#quickstart">Quick Start →</a>
     </div>
 
@@ -147,13 +147,13 @@ footer a{color:var(--text2)}
         <div class="t-dot t-red"></div>
         <div class="t-dot t-yellow"></div>
         <div class="t-dot t-green"></div>
-        <span class="terminal-title">pact-sentinel — bash</span>
+        <span class="terminal-title">pact-guard — bash</span>
       </div>
       <div class="terminal-body">
 <span class="t-prompt">$</span> <span class="t-white">python cli.py vulnerable-defi.pact --no-ai</span>
 <br>
 <span class="t-white">╔══════════════════════════════════════════════╗</span>
-<span class="t-white">║     PACT SENTINEL — Security Analysis        ║</span>
+<span class="t-white">║     PACT GUARD — Security Analysis        ║</span>
 <span class="t-white">╚══════════════════════════════════════════════╝</span>
 <span class="t-white">  File:    vulnerable-defi.pact</span>
 <span class="t-white">  Elapsed: 0.003s</span>
@@ -209,7 +209,7 @@ footer a{color:var(--text2)}
     <div class="feature-card">
       <div class="feature-icon">🤖</div>
       <div class="feature-title">AI Explanations</div>
-      <div class="feature-desc">Claude API integration provides deep technical explanations, concrete attack scenarios, and fixed code snippets for every finding.</div>
+      <div class="feature-desc">Gemini API integration provides deep technical explanations, concrete attack scenarios, and fixed code snippets for every finding.</div>
     </div>
     <div class="feature-card">
       <div class="feature-icon">📊</div>
@@ -262,14 +262,14 @@ footer a{color:var(--text2)}
   <p class="section-sub">Zero mandatory dependencies — pure Python stdlib. No pip install needed for core analysis.</p>
   <div class="install-block">
     <code class="comment"># Clone the repo</code>
-    <code class="cmd">git clone https://github.com/sunilblinkoninfra-cyber/pact-sentinel.git</code>
-    <code class="cmd">cd pact-sentinel</code>
+    <code class="cmd">git clone https://github.com/sunilblinkoninfra-cyber/pact-guard.git</code>
+    <code class="cmd">cd pact-guard</code>
     <br>
     <code class="comment"># Analyze a contract (no API key needed)</code>
     <code class="cmd">python cli.py mytoken.pact --no-ai</code>
     <br>
-    <code class="comment"># With Claude AI enrichment</code>
-    <code class="cmd">export ANTHROPIC_API_KEY=sk-ant-...</code>
+    <code class="comment"># With Gemini AI enrichment</code>
+    <code class="cmd">export GEMINI_API_KEY=AIza...</code>
     <code class="cmd">python cli.py mytoken.pact</code>
     <br>
     <code class="comment"># Output formats</code>
@@ -304,7 +304,7 @@ footer a{color:var(--text2)}
     <div class="eval-card">
       <div class="eval-score">20%</div>
       <div class="eval-label">AI Integration</div>
-      <div class="eval-desc">Claude API for deep explanations, attack scenarios, automated fix suggestions. Graceful fallback without API key.</div>
+      <div class="eval-desc">Gemini API for deep explanations, attack scenarios, automated fix suggestions. Graceful fallback without API key.</div>
     </div>
     <div class="eval-card">
       <div class="eval-score">15%</div>
@@ -321,8 +321,8 @@ footer a{color:var(--text2)}
 
 <!-- Footer -->
 <footer>
-  <p>Built for the Kadena Pact security competition · <a href="https://github.com/sunilblinkoninfra-cyber/pact-sentinel" target="_blank">GitHub</a> · MIT License</p>
-  <p style="margin-top:8px;color:var(--text3)">Pact Sentinel v1.0.0 · Zero external dependencies · Python 3.9+</p>
+  <p>Built for the Kadena Pact security competition · <a href="https://github.com/sunilblinkoninfra-cyber/pact-guard" target="_blank">GitHub</a> · MIT License</p>
+  <p style="margin-top:8px;color:var(--text3)">PactGuard v1.0.0 · Zero external dependencies · Python 3.9+</p>
 </footer>
 
 </body>

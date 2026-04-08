@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-pact-sentinel CLI
+pact-guard CLI
 AI-powered security analyzer for Kadena Pact smart contracts.
 """
 import sys
@@ -12,12 +12,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from src.core.analyzer import PactSentinel
+from src.core.analyzer import PactGuard
 
 
 def build_parser():
     p = argparse.ArgumentParser(
-        prog="pact-sentinel",
+        prog="pact-guard",
         description="🛡️  AI-powered security analyzer for Kadena Pact smart contracts",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=textwrap.dedent("""
@@ -43,10 +43,10 @@ def build_parser():
     p.add_argument("--tags", "-t", metavar="TAGS")
     p.add_argument("--skip-rules", metavar="RULES")
     p.add_argument("--no-ai", action="store_true")
-    p.add_argument("--api-key",       metavar="KEY",      help="API key — OpenAI (sk-...) or Anthropic (sk-ant-...). Auto-detects provider.")
+    p.add_argument("--api-key",       metavar="KEY",      help="API key — OpenAI (sk-...) or Gemini (AIza...). Auto-detects provider.")
     p.add_argument("--openai-key",    metavar="KEY",      help="OpenAI API key (or OPENAI_API_KEY env var)")
-    p.add_argument("--anthropic-key", metavar="KEY",      help="Anthropic API key (or ANTHROPIC_API_KEY env var)")
-    p.add_argument("--ai-provider",   metavar="PROVIDER", choices=["openai","anthropic"], help="Force AI provider")
+    p.add_argument("--gemini-key", metavar="KEY",      help="Gemini API key (or GEMINI_API_KEY env var)")
+    p.add_argument("--ai-provider",   metavar="PROVIDER", choices=["openai","gemini"], help="Force AI provider")
     p.add_argument("--exit-code", action="store_true")
     p.add_argument("--fail-on", choices=["critical","high","medium","low"], default="high")
     p.add_argument("--confidence", type=float, default=0.5)
@@ -54,13 +54,13 @@ def build_parser():
     p.add_argument("--summary", action="store_true",
                    help="One-line: grade, score, counts (for shell scripting)")
     p.add_argument("--list-rules", action="store_true")
-    p.add_argument("--version", action="version", version="pact-sentinel 1.0.0")
+    p.add_argument("--version", action="version", version="pact-guard 1.0.0")
     return p
 
 
 def list_rules():
     from src.rules.rule_engine import ALL_RULES
-    print("\n🛡️  Pact Sentinel — Available Rules\n")
+    print("\n🛡️  PactGuard — Available Rules\n")
     print(f"{'ID':<10} {'Severity':<10} {'Tags':<40} Title")
     print("─" * 90)
     for r in ALL_RULES:
@@ -89,16 +89,16 @@ def main():
 
     tag_filter = [t.strip() for t in args.tags.split(",")] if args.tags else None
     skip_rules = [r.strip() for r in args.skip_rules.split(",")] if args.skip_rules else None
-    api_key = args.api_key or os.environ.get("ANTHROPIC_API_KEY")
+    api_key = args.api_key or os.environ.get("GEMINI_API_KEY")
 
     openai_key    = getattr(args, 'openai_key',    None) or os.environ.get("OPENAI_API_KEY",    "")
-    anthropic_key = getattr(args, 'anthropic_key', None) or os.environ.get("ANTHROPIC_API_KEY", "")
+    gemini_key = getattr(args, 'gemini_key', None) or os.environ.get("GEMINI_API_KEY", "")
     ai_provider   = getattr(args, 'ai_provider',   None)
 
-    sentinel = PactSentinel(
+    sentinel = PactGuard(
         api_key=api_key,
         openai_key=openai_key or None,
-        anthropic_key=anthropic_key or None,
+        gemini_key=gemini_key or None,
         ai_provider=ai_provider,
         use_ai=not args.no_ai,
         severity_filter=severity_filter,

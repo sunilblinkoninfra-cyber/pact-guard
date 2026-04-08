@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to **Pact Sentinel** are documented here.
+All notable changes to **PactGuard** are documented here.
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)  
 Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
@@ -33,7 +33,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - **R-012** `HIGH` — Transfer Capability Missing @managed Annotation
 
 #### AI Integration
-- **Claude API integration** — uses `claude-sonnet-4-20250514` for deep vulnerability explanations
+- **Gemini API integration** — uses `gemini-2.5-flash` for deep vulnerability explanations
 - **Attack scenario generation** — concrete step-by-step exploit descriptions for each finding
 - **Automated fix suggestions** — AI-generated corrected Pact code snippets
 - **Executive summary** — high-level security narrative for non-technical stakeholders
@@ -54,7 +54,7 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 #### Interfaces
 - **CLI** (`cli.py`) — full argparse interface with `--format`, `--exit-code`, `--severity`, `--skip-rules`, `--no-ai`, `--dir`, stdin support
 - **Web UI** — Flask backend + single-page dark terminal interface with live syntax highlighting, expandable findings, JSON export
-- **Python API** — `PactSentinel` class for embedding in other tools
+- **Python API** — `PactGuard` class for embedding in other tools
 
 #### CI/CD & Tooling
 - **GitHub Actions workflow** — SARIF upload, PR comments, AI enrichment on main, build failure gates
@@ -86,4 +86,4 @@ Versioning: [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ---
 
-[1.0.0]: https://github.com/sunilblinkoninfra-cyber/pact-sentinel/releases/tag/v1.0.0
+[1.0.0]: https://github.com/sunilblinkoninfra-cyber/pact-guard/releases/tag/v1.0.0

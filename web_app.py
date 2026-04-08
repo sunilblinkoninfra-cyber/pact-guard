@@ -1,5 +1,5 @@
 """
-Pact Sentinel Web UI — Flask Backend
+PactGuard Web UI — Flask Backend
 Provides a REST API + serves the frontend SPA.
 
 Endpoints:
@@ -16,7 +16,7 @@ from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 
 sys.path.insert(0, str(Path(__file__).parent))
-from src.core.analyzer import PactSentinel
+from src.core.analyzer import PactGuard
 
 app = Flask(__name__, static_folder="web", static_url_path="")
 
@@ -30,11 +30,11 @@ def analyze():
     use_ai        = data.get("use_ai", False)
     api_key       = data.get("api_key", "")
     openai_key    = data.get("openai_key", "")   or os.environ.get("OPENAI_API_KEY",    "")
-    anthropic_key = data.get("anthropic_key", "") or os.environ.get("ANTHROPIC_API_KEY", "")
+    gemini_key = data.get("gemini_key", "") or os.environ.get("GEMINI_API_KEY", "")
     # Legacy: single api_key field auto-detects provider
-    if api_key and not openai_key and not anthropic_key:
-        if api_key.startswith("sk-ant"):
-            anthropic_key = api_key
+    if api_key and not openai_key and not gemini_key:
+        if api_key.startswith("AIza"):
+            gemini_key = api_key
         else:
             openai_key = api_key
     ai_provider   = data.get("ai_provider")
@@ -42,16 +42,16 @@ def analyze():
     skip_rules    = data.get("skip_rules", [])
     confidence    = float(data.get("confidence", 0.5))
 
-    any_key = bool(openai_key or anthropic_key)
+    any_key = bool(openai_key or gemini_key)
 
     if not source.strip():
         return jsonify({"error": "No source code provided"}), 400
     if len(source) > 100_000:
         return jsonify({"error": "Source too large (max 100KB)"}), 413
 
-    sentinel = PactSentinel(
+    sentinel = PactGuard(
         openai_key=openai_key or None,
-        anthropic_key=anthropic_key or None,
+        gemini_key=gemini_key or None,
         ai_provider=ai_provider,
         use_ai=use_ai and any_key,
         severity_filter=severity,
@@ -79,7 +79,7 @@ def list_rules():
 
 @app.route("/api/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "tool": "pact-sentinel", "version": "1.0.0"})
+    return jsonify({"status": "ok", "tool": "pact-guard", "version": "1.0.0"})
 
 
 @app.route("/", defaults={"path": ""})
@@ -94,5 +94,5 @@ def serve_spa(path):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     debug = os.environ.get("DEBUG", "false").lower() == "true"
-    print(f"🛡️  Pact Sentinel Web UI → http://localhost:{port}")
+    print(f"🛡️  PactGuard Web UI → http://localhost:{port}")
     app.run(host="0.0.0.0", port=port, debug=debug)

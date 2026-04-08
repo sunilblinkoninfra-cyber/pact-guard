@@ -1,4 +1,4 @@
-# pact-sentinel requirements
+# pact-guard requirements
 # Core engine uses Python stdlib only — zero dependencies needed
 
 # Web UI (optional)

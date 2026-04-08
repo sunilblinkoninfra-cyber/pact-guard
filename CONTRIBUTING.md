@@ -1,12 +1,12 @@
-# Contributing to Pact Sentinel
+# Contributing to PactGuard
 
 Thank you for your interest in contributing! This document covers how to add rules, fix bugs, or improve the tool.
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/sunilblinkoninfra-cyber/pact-sentinel.git
-cd pact-sentinel
+git clone https://github.com/sunilblinkoninfra-cyber/pact-guard.git
+cd pact-guard
 python -m pytest tests/ -v
 python cli.py tests/contracts/vulnerable-defi.pact --no-ai
 ```
@@ -77,6 +77,6 @@ Key node types available during analysis:
 - Docstrings on all classes
 - No external dependencies in `src/` (stdlib only)
 
-## Reporting Vulnerabilities in Pact Sentinel Itself
+## Reporting Vulnerabilities in PactGuard Itself
 
 Open a GitHub Issue with the `security` label. Do not disclose publicly before a fix is available.

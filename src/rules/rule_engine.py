@@ -142,12 +142,23 @@ class R001_MissingCapabilityBeforeMutation(BaseRule):
         findings = []
         for mod in contract.modules:
             for fn_name, fn in mod.functions.items():
-                if fn.visibility == Visibility.PRIVATE:
+                if fn.visibility == Visibility.PRIVATE or fn_name.startswith('_') or 'internal' in fn_name.lower():
                     continue
                 if not fn.state_mutations:
                     continue
                 if fn.capability_guards or fn.capabilities_required or fn.enforcements:
                     continue
+                
+                # FP Calibration: Check if it delegates to private helpers or external enforces
+                delegates = False
+                for node in fn.body:
+                    for _, n in self._flatten(node):
+                        if n.name and ('enforce' in n.name or 'require' in n.name or n.name.startswith('_')):
+                            delegates = True
+                            break
+                if delegates:
+                    continue
+
                 # ONE finding per function (pick worst mutation)
                 mutation = fn.state_mutations[0]
                 table    = mutation.attributes.get("table", "?")
@@ -376,10 +387,21 @@ class R004_PublicFunctionMutatingSensitiveState(BaseRule):
         findings = []
         for mod in contract.modules:
             for fn_name, fn in mod.functions.items():
-                if fn.visibility == Visibility.PRIVATE:
+                if fn.visibility == Visibility.PRIVATE or fn_name.startswith('_') or 'internal' in fn_name.lower():
                     continue
-                if fn.capability_guards:
+                if fn.capability_guards or fn.enforcements:
                     continue  # protected — skip
+
+                # FP Calibration: Check if it delegates to private helpers or external enforces
+                delegates = False
+                for node in fn.body:
+                    for _, n in self._flatten(node):
+                        if n.name and ('enforce' in n.name or 'require' in n.name or n.name.startswith('_')):
+                            delegates = True
+                            break
+                if delegates:
+                    continue
+
                 # Find FIRST sensitive mutation (deduplicate per function)
                 sensitive_mutation = next(
                     (m for m in fn.state_mutations if self._is_sensitive(m.attributes.get("table", ""))),
@@ -525,8 +547,12 @@ class R006_StateChangeBeforeAuth(BaseRule):
                 nt = n.node_type
                 if nt in (NodeType.WRITE, NodeType.UPDATE, NodeType.INSERT, NodeType.DELETE):
                     if first_mut_line is None:
-                        first_mut_line = line
-                        first_mut_node = n
+                        # FP Case 2: CEI violation is only high risk if modifying sensitive tables.
+                        # Local counters/stats can be safely reordered.
+                        table = n.attributes.get("table", "?")
+                        if any(s in table.lower() for s in ["account", "balance", "token", "ledger", "vault", "pool"]):
+                            first_mut_line = line
+                            first_mut_node = n
                 elif nt in (NodeType.ENFORCE, NodeType.ENFORCE_GUARD, NodeType.ENFORCE_ONE):
                     if first_mut_line is not None and line > first_mut_line:
                         table   = first_mut_node.attributes.get("table", "?") if first_mut_node else "?"
@@ -871,6 +897,8 @@ class R012_MissingManagedCapability(BaseRule):
                     'amount' in p.lower() or p.lower().endswith(':decimal')
                     for p in cap.params
                 )
+                if not has_amount_param:
+                    continue
                 findings.append(Finding(
                     rule_id=self.rule_id,
                     title=self.title,

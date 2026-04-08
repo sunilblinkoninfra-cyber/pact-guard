@@ -46,7 +46,7 @@ TOKEN_PATTERNS = [
     ("DOT",        r'\.'),
     ("BACKTICK",   r'`'),
     ("SYMBOL",     r"'[a-zA-Z_\-][a-zA-Z0-9_\-/]*"),
-    ("IDENT",      r'[a-zA-Z_\-][a-zA-Z0-9_\-\.\/\?\!]*'),
+    ("IDENT",      r'[a-zA-Z_\-\+\=\<\>\!\*\/\^\&\|~][a-zA-Z0-9_\-\.\/\?\!\+\=\<\>\*\^\&\|~]*'),
     ("WHITESPACE", r'[ \t\r\n]+'),
 ]
 
@@ -266,6 +266,11 @@ class PactParser:
         self.expect("LBRACE")
         pairs = []
         while self.peek() and not self.match("RBRACE"):
+            tok = self.peek()
+            if tok and tok.type == "RPAREN":
+                # Emergency break to prevent infinite loop on unbalanced parens
+                self.advance()
+                continue
             n = self.parse_sexp()
             if n:
                 pairs.append(n)
