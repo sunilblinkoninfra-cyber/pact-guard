@@ -15,10 +15,53 @@ import time
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
 
+# ── Logger Setup ──────────────────────────────────────────────────
+class Tee:
+    def __init__(self, stream, filepath):
+        self.stream = stream
+        self.filepath = filepath
+        
+    def write(self, data):
+        self.stream.write(data)
+        self.stream.flush()
+        try:
+            with open(self.filepath, "a", encoding="utf-8") as f:
+                f.write(data)
+        except:
+            pass
+            
+    def flush(self):
+        self.stream.flush()
+
+log_file = Path(__file__).parent / "server.log"
+sys.stdout = Tee(sys.stdout, log_file)
+sys.stderr = Tee(sys.stderr, log_file)
+
 sys.path.insert(0, str(Path(__file__).parent))
 from src.core.analyzer import PactGuard
 
 app = Flask(__name__, static_folder="web", static_url_path="")
+
+# ── Exception & Log Routes ────────────────────────────────────────
+@app.errorhandler(Exception)
+def handle_exception(e):
+    import traceback
+    if hasattr(e, "code"):
+        return jsonify({"error": str(e)}), e.code
+    traceback.print_exc()
+    return jsonify({
+        "error": "Unhandled Exception",
+        "message": str(e),
+        "traceback": traceback.format_exc()
+    }), 500
+
+@app.route("/api/debug_logs", methods=["GET"])
+def get_debug_logs():
+    log_path = Path(__file__).parent / "server.log"
+    if log_path.exists():
+        with open(log_path, "r", encoding="utf-8") as f:
+            return f.read(), 200, {"Content-Type": "text/plain; charset=utf-8"}
+    return "No log file found", 404
 
 # ── API ───────────────────────────────────────────────────────────
 
