@@ -49,18 +49,23 @@ def analyze():
     if len(source) > 100_000:
         return jsonify({"error": "Source too large (max 100KB)"}), 413
 
-    sentinel = PactGuard(
-        openai_key=openai_key or None,
-        gemini_key=gemini_key or None,
-        ai_provider=ai_provider,
-        use_ai=use_ai and any_key,
-        severity_filter=severity,
-        skip_rules=skip_rules if skip_rules else None,
-        confidence_threshold=confidence,
-    )
+    try:
+        sentinel = PactGuard(
+            openai_key=openai_key or None,
+            gemini_key=gemini_key or None,
+            ai_provider=ai_provider,
+            use_ai=use_ai and any_key,
+            severity_filter=severity,
+            skip_rules=skip_rules if skip_rules else None,
+            confidence_threshold=confidence,
+        )
 
-    result = sentinel.analyze_source(source, filename=filename)
-    return jsonify(result.report)
+        result = sentinel.analyze_source(source, filename=filename)
+        return jsonify(result.report)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 
 @app.route("/api/rules", methods=["GET"])
