@@ -15,4 +15,4 @@ COPY web_app.py cli.py ./
 EXPOSE 8080
 
 # Run with gunicorn in production
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "4", "web_app:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "3", "--threads", "2", "--keep-alive", "5", "web_app:app"]

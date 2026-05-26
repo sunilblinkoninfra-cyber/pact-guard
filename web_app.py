@@ -14,6 +14,9 @@ import json
 import time
 from pathlib import Path
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 # ── Logger Setup ──────────────────────────────────────────────────
 class Tee:
@@ -41,6 +44,14 @@ sys.path.insert(0, str(Path(__file__).parent))
 from src.core.analyzer import PactGuard
 
 app = Flask(__name__, static_folder="web", static_url_path="")
+CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 # ── Exception & Log Routes ────────────────────────────────────────
 @app.errorhandler(Exception)
@@ -56,6 +67,7 @@ def handle_exception(e):
     }), 500
 
 @app.route("/api/debug_logs", methods=["GET"])
+@limiter.exempt
 def get_debug_logs():
     log_path = Path(__file__).parent / "server.log"
     if log_path.exists():
@@ -66,6 +78,7 @@ def get_debug_logs():
 # ── API ───────────────────────────────────────────────────────────
 
 @app.route("/api/analyze", methods=["POST"])
+@limiter.limit("10 per minute;60 per hour")
 def analyze():
     data = request.get_json(force=True)
     source        = data.get("source", "")
@@ -112,6 +125,7 @@ def analyze():
 
 
 @app.route("/api/rules", methods=["GET"])
+@limiter.exempt
 def list_rules():
     from src.rules.rule_engine import ALL_RULES
     return jsonify([
@@ -126,12 +140,204 @@ def list_rules():
 
 
 @app.route("/api/health", methods=["GET"])
+@limiter.exempt
 def health():
     return jsonify({"status": "ok", "tool": "pact-guard", "version": "1.0.0"})
 
 
+# ── Swagger API Docs & Specification ─────────────────────────────────
+
+@app.route("/api/swagger.json", methods=["GET"])
+@limiter.exempt
+def swagger_json():
+    return jsonify({
+        "openapi": "3.0.3",
+        "info": {
+            "title": "PactGuard Security Analyzer API",
+            "description": "API documentation for the AI-powered Kadena Pact smart contract security analyzer.",
+            "version": "1.0.0",
+            "contact": {
+                "name": "PactGuard Contributors",
+                "url": "https://github.com/sunilblinkoninfra-cyber/pact-guard"
+            }
+        },
+        "paths": {
+            "/api/health": {
+                "get": {
+                    "summary": "Health Check",
+                    "description": "Returns the status and version of the PactGuard service.",
+                    "responses": {
+                        "200": {
+                            "description": "Service is healthy and online",
+                            "content": {
+                                "application/json": {
+                                    "example": {
+                                        "status": "ok",
+                                        "tool": "pact-guard",
+                                        "version": "1.0.0"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/api/rules": {
+                "get": {
+                    "summary": "List Rules",
+                    "description": "Retrieves the list of all 12 smart contract security rules supported by the analyzer.",
+                    "responses": {
+                        "200": {
+                            "description": "Successful retrieval of rules list",
+                            "content": {
+                                "application/json": {
+                                    "example": [
+                                        {
+                                            "id": "R-001",
+                                            "title": "State Mutation Without Capability Guard",
+                                            "severity": "critical",
+                                            "tags": ["access-control", "capability", "state-mutation"]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "/api/debug_logs": {
+                "get": {
+                    "summary": "Get Debug Logs",
+                    "description": "Retrieves the remote server stdout/stderr debug logs for active troubleshooting.",
+                    "responses": {
+                        "200": {
+                            "description": "Log contents retrieved successfully"
+                        },
+                        "404": {
+                            "description": "Log file not found"
+                        }
+                    }
+                }
+            },
+            "/api/analyze": {
+                "post": {
+                    "summary": "Analyze Pact Smart Contract",
+                    "description": "Runs static parsing, applies 12 security rules, scores the contract risk, and optionally enriches findings using Gemini AI.",
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "source": {
+                                            "type": "string",
+                                            "description": "Full source code of the Pact smart contract"
+                                        },
+                                        "filename": {
+                                            "type": "string",
+                                            "description": "Optional custom filename for the report",
+                                            "default": "contract.pact"
+                                        },
+                                        "use_ai": {
+                                            "type": "boolean",
+                                            "description": "Set to true to run Gemini AI reasoning",
+                                            "default": False
+                                        },
+                                        "openai_key": {
+                                            "type": "string",
+                                            "description": "Optional user-supplied OpenAI API key"
+                                        },
+                                        "gemini_key": {
+                                            "type": "string",
+                                            "description": "Optional user-supplied Gemini API key"
+                                        },
+                                        "confidence": {
+                                            "type": "number",
+                                            "description": "Minimum confidence threshold (0.0 to 1.0)",
+                                            "default": 0.5
+                                        }
+                                    },
+                                    "required": ["source"]
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "200": {
+                            "description": "Smart contract analysis was successful",
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object"
+                                    }
+                                }
+                            }
+                        },
+                        "400": {
+                            "description": "Bad Request (e.g. empty source code)"
+                        },
+                        "413": {
+                            "description": "Payload Too Large (source code exceeds 100KB)"
+                        },
+                        "429": {
+                            "description": "Too Many Requests (rate limit reached)"
+                        },
+                        "500": {
+                            "description": "Internal Server Error (auditing parser/AI crash)"
+                        }
+                    }
+                }
+            }
+        }
+    })
+
+
+@app.route("/apidocs", methods=["GET"])
+@limiter.exempt
+def apidocs():
+    swagger_ui_html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>PactGuard API Documentation</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5/swagger-ui.css" />
+  <link rel="icon" type="image/png" href="https://unpkg.com/swagger-ui-dist@5/favicon-32x32.png" sizes="32x32" />
+  <style>
+    html { box-sizing: border-box; overflow: -y-scroll; }
+    *, *:before, *:after { box-sizing: inherit; }
+    body { margin: 0; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = () => {
+      window.ui = SwaggerUIBundle({
+        url: '/api/swagger.json',
+        dom_id: '#swagger-ui',
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        layout: "BaseLayout",
+        deepLinking: true,
+        showExtensions: true,
+        showCommonExtensions: true
+      });
+    };
+  </script>
+</body>
+</html>
+"""
+    return swagger_ui_html, 200, {"Content-Type": "text/html"}
+
+
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
+@limiter.exempt
 def serve_spa(path):
     web_dir = Path(__file__).parent / "web"
     if path and (web_dir / path).exists():
