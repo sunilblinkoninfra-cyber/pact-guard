@@ -48,10 +48,20 @@ def build_json_report(
         if enrich:
             if enrich.get("ai_explanation"):
                 fd["ai_explanation"] = enrich["ai_explanation"]
-            if enrich.get("attack_scenario"):
-                fd["attack_scenario"] = enrich["attack_scenario"]
+            
+            # Map exploit_scenario or attack_scenario for frontend
+            scenario = enrich.get("exploit_scenario") or enrich.get("attack_scenario")
+            if scenario:
+                fd["exploit_scenario"] = scenario
+                fd["attack_scenario"] = scenario  # Backward compatibility
+                
             if enrich.get("fixed_code"):
                 fd["fixed_code_example"] = enrich["fixed_code"]
+                
+            # Extra fields from Gemini that the UI displays
+            for field_name in ["entry_point", "reachability", "vulnerable_path", "severity_justification", "confidence_level"]:
+                if enrich.get(field_name):
+                    fd[field_name] = enrich[field_name]
         numbered_findings.append(fd)
 
     report = {

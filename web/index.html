@@ -21,6 +21,29 @@ body{background:var(--bg);color:var(--text);font-family:'JetBrains Mono',monospa
 a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
 
+
+/* Risk Banner */
+.risk-banner { padding: 9px 18px; font-weight: 700; font-size: 13px; text-align: center; color: white; display: none; margin-bottom: 0px; letter-spacing: 0.5px; z-index: 100;}
+.rb-critical { background: var(--critical); border-bottom: 2px solid #b91c1c; }
+.rb-high { background: var(--high); border-bottom: 2px solid #c2410c; }
+.rb-clear { background: var(--low); border-bottom: 2px solid #15803d; }
+
+/* Confidence & Exploitability */
+.badge-conf, .badge-expl { border-radius: 4px; padding: 2px 6px; font-size: 8.5px; text-transform: uppercase; font-weight: bold; margin-left: 5px; }
+.b-conf-high { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+.b-conf-med { background: rgba(234,179,8,0.15); color: #facc15; border: 1px solid rgba(234,179,8,0.25); }
+.b-conf-low { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+
+.b-expl { background: rgba(139,92,246,0.15); color: #c084fc; border: 1px solid rgba(139,92,246,0.25); }
+.b-safe { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); padding: 4px; border-radius: 4px; margin-top:5px; font-size: 10px; display:inline-block;}
+
+/* Added INFO severity */
+.sev.i { background: rgba(59,130,246,0.07); border-color: rgba(59,130,246,0.22); }
+.sev.i .sev-n { color: var(--accent); }
+.card.info:hover, .card.info.open { border-color: rgba(59,130,246,0.3); }
+.card.info .sev-dot { background: var(--accent); }
+.card.info .card-sev { color: var(--accent); }
+
 /* Ambient glow */
 body::after{content:'';position:fixed;width:700px;height:700px;background:var(--accent);border-radius:50%;filter:blur(160px);opacity:0.03;top:-200px;right:-200px;pointer-events:none;z-index:0}
 
@@ -81,7 +104,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
 .bar-wrap{margin-bottom:12px}
 .bar-bg{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
 .bar-fill{height:100%;border-radius:2px;transition:width .7s cubic-bezier(.4,0,.2,1);background:linear-gradient(90deg,var(--critical),var(--high),var(--medium),var(--green))}
-.sev-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.sev-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
 .sev{padding:7px;border-radius:6px;text-align:center;border:1px solid}
 .sev.c{background:rgba(239,68,68,.07);border-color:rgba(239,68,68,.22)}
 .sev.h{background:rgba(249,115,22,.07);border-color:rgba(249,115,22,.22)}
@@ -220,6 +243,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
   </div>
 </nav>
 
+<div id="riskBanner" class="risk-banner"></div>
 <div class="workspace">
   <!-- Editor -->
   <div class="editor-panel">
@@ -328,6 +352,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
           <div class="sev h"><div class="sev-n" id="cHigh">0</div><div class="sev-t">High</div></div>
           <div class="sev m"><div class="sev-n" id="cMed">0</div><div class="sev-t">Medium</div></div>
           <div class="sev l"><div class="sev-n" id="cLow">0</div><div class="sev-t">Low</div></div>
+          <div class="sev i"><div class="sev-n" id="cInfo">0</div><div class="sev-t">Info</div></div>
         </div>
       </div>
 
@@ -380,6 +405,7 @@ nav{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.9);backdrop-filte
     <div class="field">
       <label>Analysis mode</label>
       <select id="modeSelect" style="width:100%;padding:8px 11px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none">
+        <option value="server">Flask Server API (full python engine, instant)</option>
         <option value="local">Browser-only (static patterns, instant)</option>
         <option value="github">GitHub Actions (full engine + AI)</option>
       </select>
@@ -409,7 +435,8 @@ const S = {
   openaiKey:    localStorage.getItem('ps_openai_key')    || '',
   geminiKey: localStorage.getItem('ps_gemini_key') || '',
   ghToken:      localStorage.getItem('ps_gh_token')      || '',
-  mode:         localStorage.getItem('ps_mode')          || 'local',
+  mode:         localStorage.getItem('ps_mode')          || 
+                ((window.location.protocol === 'http:' || window.location.protocol === 'https:') ? 'server' : 'local'),
   get apiKey() { return this.openaiKey || this.geminiKey; },
 };
 
@@ -662,6 +689,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('modeSelect').addEventListener('change', e => {
     document.getElementById('modeHint').textContent = e.target.value === 'local'
       ? 'Runs pattern matching directly in your browser. No server, no data sent anywhere.'
+      : e.target.value === 'server'
+      ? 'Queries the Flask backend server for a full static analysis using the Python engine.'
       : 'Triggers a GitHub Actions workflow for full analysis + Gemini AI. Requires GitHub token.';
   });
   document.addEventListener('keydown', e => { if (e.key==='Escape') closeSettings(); });
@@ -738,6 +767,8 @@ async function runAnalysis() {
     let report;
     if (S.mode === 'github' && S.ghToken) {
       report = await analyzeViaGitHub(src);
+    } else if (S.mode === 'server') {
+      report = await analyzeViaServer(src);
     } else {
       report = await analyzeLocal(src);
     }
@@ -1043,6 +1074,35 @@ async function analyzeLocal(source) {
   };
 }
 
+// ── Flask Server analysis ─────────────────────────────────────────
+async function analyzeViaServer(source) {
+  const payload = {
+    source: source,
+    filename: 'contract.pact',
+    use_ai: true,
+    openai_key: S.openaiKey,
+    gemini_key: S.geminiKey,
+    confidence: 0.5
+  };
+
+  const resp = await fetch('/api/analyze', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error(err.error || `Server returned ${resp.status}`);
+  }
+
+  const report = await resp.json();
+  report.analysis_mode = 'flask-server';
+  return report;
+}
+
 // ── GitHub Actions analysis ───────────────────────────────────────
 async function analyzeViaGitHub(source) {
   const reqId = 'ps-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
@@ -1137,6 +1197,20 @@ function renderResults(report) {
   document.getElementById('cHigh').textContent = bd.high||0;
   document.getElementById('cMed').textContent = bd.medium||0;
   document.getElementById('cLow').textContent = bd.low||0;
+  document.getElementById('cInfo').textContent = bd.info||0;
+  
+  const rb = document.getElementById('riskBanner');
+  rb.style.display = 'block';
+  if ((bd.critical || 0) > 0) {
+      rb.className = 'risk-banner rb-critical';
+      rb.innerHTML = '⚠️ CRITICAL RISKS DETECTED — Do Not Deploy';
+  } else if ((bd.high || 0) > 0) {
+      rb.className = 'risk-banner rb-high';
+      rb.innerHTML = '⚠️ HIGH RISKS DETECTED — Remediation Required';
+  } else {
+      rb.className = 'risk-banner rb-clear';
+      rb.innerHTML = '✅ NO HIGH/CRITICAL RISKS — Safe for Deployment';
+  }
 
   const sb = document.getElementById('summaryBox');
   if (report.summary) { sb.textContent = report.summary; sb.style.display=''; } else { sb.style.display='none'; }
@@ -1163,7 +1237,9 @@ function renderFindings(findings) {
     const loc = f.location||{};
     const fix = (f.fixed_code_example||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const aiBlock = f.ai_explanation ? `<div class="sec"><div class="sec-lbl">AI Analysis</div><div class="sec-txt"><span class="ai-badge">gemini</span>${f.ai_explanation}</div></div>` : '';
-    const attackBlock = f.attack_scenario ? `<div class="sec"><div class="sec-lbl">Attack Scenario</div><div class="sec-txt">${f.attack_scenario}</div></div>` : '';
+    const attackBlock = f.exploit_scenario ? `<div class="sec"><div class="sec-lbl">Attack Scenario</div><div class="sec-txt">${f.exploit_scenario}</div></div>` : '';
+    const reachabilityBlock = f.reachability ? `<div class="sec"><div class="sec-lbl">Reachability Analysis</div><div class="sec-txt"><strong>Entry Point:</strong> ${f.entry_point || 'Unknown'} <br/> <strong>Classification:</strong> ${f.reachability} <br/> <strong>Execution Path:</strong> ${f.vulnerable_path || 'N/A'}</div></div>` : '';
+    const severityJustBlock = f.severity_justification ? `<div class="sec"><div class="sec-lbl">Severity Justification</div><div class="sec-txt">${f.severity_justification}</div></div>` : '';
     const fixBlock = fix ? `<div class="sec"><div class="sec-lbl">Fixed Code</div><div class="code-blk" onclick="event.stopPropagation()">
       <div class="fix-badge">
         <button class="btn-fix" onclick="applyFix('${f.id}')">Apply Fix</button>
@@ -1171,12 +1247,39 @@ function renderFindings(findings) {
       <pre>${fix}</pre>
     </div></div>` : '';
     const tags = (f.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('');
+    
+    // Safety & Metadata Logic
+    let rawConf = f.confidence_level ? f.confidence_level.toLowerCase() : f.confidence;
+    let confClass = "b-conf-high";
+    if (rawConf === "medium" || rawConf === 0.5) confClass = "b-conf-med";
+    if (rawConf === "low" || rawConf === 0.2) confClass = "b-conf-low";
+    
+    let confLevel = "HIGH";
+    if (rawConf === "medium" || rawConf === 0.5) confLevel = "MED";
+    if (rawConf === "low" || rawConf === 0.2) confLevel = "LOW";
+    
+    let explType = (f.metadata && f.metadata.exploitability) ? f.metadata.exploitability : "Theoretical";
+    if (f.severity === "info") explType = "Indirect";
+    if (f.severity === "critical") explType = "Direct";
+    
+    let safePattern = "";
+    if (f.metadata && f.metadata.safe_pattern_indicator) {
+        safePattern = `<div class="b-safe">${f.metadata.safe_pattern_indicator}</div>`;
+    }
+
     return `<div class="card ${f.severity}" style="animation-delay:${i*0.04}s" data-line="${loc.line||0}" onclick="toggleCard(this)">
       <div class="card-hdr">
         <div class="sev-dot"></div>
         <div class="card-meta">
-          <div class="card-ids"><span class="card-id">${f.id}</span><span class="card-rule">${f.rule_id||''}</span><span class="card-sev">${SEV_EMOJI[f.severity]||''} ${f.severity.toUpperCase()}</span></div>
+          <div class="card-ids">
+             <span class="card-id">${f.id}</span>
+             <span class="card-rule">${f.rule_id||''}</span>
+             <span class="card-sev">${SEV_EMOJI[f.severity]||'ℹ️'} ${f.severity.toUpperCase()}</span>
+             <span class="badge-conf ${confClass}">Conf: ${confLevel}</span>
+             <span class="badge-expl b-expl">${explType}</span>
+          </div>
           <div class="card-title">${f.title}</div>
+          ${safePattern}
           <div class="card-loc"><span>${loc.module||'?'}</span>::<span>${loc.function||'?'}</span> · line ${loc.line||'?'}</div>
         </div>
         <span class="chevron">›</span>
@@ -1184,6 +1287,8 @@ function renderFindings(findings) {
       <div class="card-body">
         <div class="sec"><div class="sec-lbl">Issue</div><div class="sec-txt">${f.issue||''}</div></div>
         <div class="sec"><div class="sec-lbl">Risk</div><div class="sec-txt">${f.risk||''}</div></div>
+        ${reachabilityBlock}
+        ${severityJustBlock}
         ${aiBlock}${attackBlock}
         <div class="sec"><div class="sec-lbl">Recommendation</div><div class="sec-txt">${f.recommendation||''}</div></div>
         ${fixBlock}

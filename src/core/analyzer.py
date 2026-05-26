@@ -12,6 +12,7 @@ from ..parser.ast_nodes import ContractFile
 from ..rules.rule_engine import Finding, get_rules, ALL_RULES
 from ..ai.gemini_analyzer import AIAnalyzer
 from ..output.risk_score import compute_risk_score, RiskScore
+from .postprocess import apply_fp_reduction_layer
 from ..output.reporter import build_json_report, render_cli, render_markdown, render_sarif
 
 
@@ -91,6 +92,60 @@ class PactGuard:
             self.rules = [r for r in self.rules if r.rule_id not in skip_rules]
         self.confidence_threshold = confidence_threshold
 
+
+    def _build_analysis_context(self, contract: ContractFile) -> dict:
+        call_graph = {}
+        capability_flow = {}
+        scope_tree = {} # Track let scopes
+
+        for mod in contract.modules:
+            all_fns = {**mod.functions, **mod.capabilities}
+            for fn_name, fn in all_fns.items():
+                if fn_name not in call_graph:
+                    call_graph[fn_name] = {"calls": [], "called_by": [], "is_public": True}
+
+                # Evaluate public
+                if getattr(fn, "visibility", None):
+                    is_pub = (fn.visibility.value != "private")
+                    call_graph[fn_name]["is_public"] = is_pub
+                elif fn_name.startswith("-") or fn_name.startswith("_"):
+                    call_graph[fn_name]["is_public"] = False
+                
+                # Direct auth checks
+                has_auth = bool(getattr(fn, "capability_guards", [])) or bool(getattr(fn, "capabilities_required", [])) or bool(getattr(fn, "enforcements", []))
+                
+                # Check for let blocks with with-capability to flag scope leaks
+                scope_leak = False
+                for node in fn.body:
+                    if node.node_type and str(node.node_type).endswith("LET"):
+                        # Basic heuristic: if let body has with-capability assigned, but used outside?
+                        for child in node.children:
+                            if child.name in ["with-capability", "require-capability"]:
+                                has_auth = True
+                                
+                capability_flow[fn_name] = {"has_direct_auth": has_auth, "scope_leak": scope_leak}
+                
+                # Fill calls
+                for node in fn.body:
+                    # simplistic flatten
+                    def _flat(n):
+                        res = [n]
+                        for c in n.children: res.extend(_flat(c))
+                        return res
+                    
+                    for sub in _flat(node):
+                        if str(sub.node_type).endswith("CALL") and sub.name:
+                            call_graph[fn_name]["calls"].append(sub.name)
+                            if sub.name not in call_graph:
+                                call_graph[sub.name] = {"calls": [], "called_by": [], "is_public": True}
+                            call_graph[sub.name]["called_by"].append(fn_name)
+
+        return {
+            "call_graph": call_graph,
+            "capability_flow": capability_flow,
+            "scope_tree": scope_tree
+        }
+
     def analyze_source(self, source: str, filename: str = "<stdin>") -> AnalysisResult:
         """Analyze Pact source code string."""
         start = time.time()
@@ -107,19 +162,26 @@ class PactGuard:
         raw_findings = []
         for rule in self.rules:
             try:
+                rule.analyzer_context = self._build_analysis_context(contract)
                 raw_findings.extend(rule.analyze(contract))
             except Exception:
                 pass  # don't let one rule crash everything
 
-        # Filter by confidence threshold
-        findings = [f for f in raw_findings if f.confidence >= self.confidence_threshold]
+                # Execute Core Tracking & Post-process
+        context = self._build_analysis_context(contract)
+        findings = apply_fp_reduction_layer(raw_findings, contract, context)
+
+        # Filter by confidence threshold using safe value getter
+        def _get_conf(val):
+            return {"high": 1.0, "medium": 0.5, "low": 0.2}.get(val.value if hasattr(val, "value") else str(val).lower(), 1.0)
+        findings = [f for f in findings if _get_conf(f.confidence) >= self.confidence_threshold]
 
         # Deduplicate (same rule + same location)
         findings = self._deduplicate(findings)
 
-        # Sort by severity
-        sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-        findings.sort(key=lambda f: (sev_order[f.severity.value], f.location.line))
+        # Sort by severity (with info)
+        sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+        findings.sort(key=lambda f: (sev_order.get(f.severity.value, 4), f.location.line))
 
         # 3. Risk Score
         risk_score = compute_risk_score(findings)

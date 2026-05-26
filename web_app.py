@@ -94,5 +94,15 @@ def serve_spa(path):
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     debug = os.environ.get("DEBUG", "false").lower() == "true"
-    print(f"🛡️  PactGuard Web UI → http://localhost:{port}")
-    app.run(host="0.0.0.0", port=port, debug=debug)
+    
+    if debug:
+        print(f"🛡️  PactGuard Web UI (Flask Debug) → http://localhost:{port}")
+        app.run(host="0.0.0.0", port=port, debug=True)
+    else:
+        try:
+            from waitress import serve
+            print(f"🛡️  PactGuard Web UI (Production Waitress WSGI) → http://localhost:{port}")
+            serve(app, host="0.0.0.0", port=port)
+        except ImportError:
+            print(f"🛡️  PactGuard Web UI (Flask Production Fallback) → http://localhost:{port}")
+            app.run(host="0.0.0.0", port=port, debug=False)

@@ -6,7 +6,13 @@ factoring in finding severity, count, confidence, and compound risk multipliers.
 from typing import List, Dict, Any
 from dataclasses import dataclass
 
-from ..rules.rule_engine import Finding, Severity
+from ..rules.rule_engine import Finding, Severity, Confidence
+
+CONFIDENCE_MULTIPLIER = {
+    Confidence.HIGH: 1.0,
+    Confidence.MEDIUM: 0.5,
+    Confidence.LOW: 0.2
+}
 
 
 # Severity base weights (out of 100 points per finding)
@@ -60,15 +66,31 @@ def compute_risk_score(findings: List[Finding]) -> RiskScore:
     breakdown = {"critical": 0, "high": 0, "medium": 0, "low": 0, "total": len(findings)}
 
     base_score = 0.0
+    total_conf = 0.0
     for f in findings:
-        weight = SEVERITY_WEIGHTS[f.severity]
-        adjusted = weight * f.confidence
+        weight = SEVERITY_WEIGHTS.get(f.severity, 0)
+        conf_val = CONFIDENCE_MULTIPLIER.get(f.confidence, 1.0)
+        total_conf += conf_val
+        
+        # Heavily penalize CRITICAL
+        if f.severity == Severity.CRITICAL:
+            weight *= 2.0
+            
+        adjusted = weight * conf_val
         base_score += adjusted
         breakdown[f.severity.value] += 1
 
     # Apply compound multiplier
     multiplier = _compute_compound_multiplier(findings)
     raw_score = min(base_score * multiplier, 200)  # cap at 200
+    
+    # +5 Bonus Logic
+    avg_conf = total_conf / len(findings) if findings else 1.0
+    if breakdown["critical"] == 0 and breakdown["high"] == 0 and avg_conf >= 0.5:
+        # Subtract from raw_score since lower raw_score = better safe_score
+        # actually safe_score = max(0, 100 - raw_score/2). So -10 raw = +5 safe
+        raw_score -= 10.0
+        raw_score = max(0, raw_score)
 
     # Normalize to 0-100 risk scale
     # 200 raw = totally broken (0 safe score)

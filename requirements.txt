@@ -9,3 +9,8 @@ pytest>=7.4.0
 
 # Optional: Rich for enhanced CLI
 rich>=13.0.0
+
+# WSGI Production Servers
+gunicorn>=21.2.0
+waitress>=3.0.0
+

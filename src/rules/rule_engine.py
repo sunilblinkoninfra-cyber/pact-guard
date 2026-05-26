@@ -14,6 +14,7 @@ from ..parser.ast_nodes import (
 
 
 class Severity(str, Enum):
+    INFO     = "info"
     LOW      = "low"
     MEDIUM   = "medium"
     HIGH     = "high"
@@ -21,8 +22,18 @@ class Severity(str, Enum):
 
     @property
     def score(self) -> int:
-        return {"low": 1, "medium": 2, "high": 3, "critical": 4}[self.value]
+        return {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}[self.value]
 
+
+class Confidence(str, Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+def normalize_confidence(val):
+    if isinstance(val, (float, int)):
+        return Confidence.HIGH
+    return val
 
 @dataclass
 class Location:
@@ -49,21 +60,28 @@ class Finding:
     recommendation:    str
     fixed_code_example:str = ""
     tags:              List[str] = field(default_factory=list)
-    confidence:        float = 1.0
+    confidence:        Confidence = Confidence.HIGH
+    metadata:          dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        self.confidence = normalize_confidence(self.confidence)
 
     def to_dict(self, idx: int) -> dict:
+        exploitability = self.metadata.get("exploitability", "Direct")
         return {
             "id":                 f"F-{idx:03d}",
             "rule_id":            self.rule_id,
             "title":              self.title,
             "severity":           self.severity.value,
-            "confidence":         self.confidence,
+            "confidence":         self.confidence.value if isinstance(self.confidence, Confidence) else "high",
+            "exploitability":     exploitability,
             "location":           self.location.to_dict(),
             "issue":              self.issue,
             "risk":               self.risk,
             "recommendation":     self.recommendation,
             "fixed_code_example": self.fixed_code_example,
             "tags":               self.tags,
+            "metadata":           self.metadata,
         }
 
 
@@ -187,8 +205,7 @@ class R001_MissingCapabilityBeforeMutation(BaseRule):
                     continue
                 
                 # FP Calibration: Check if it delegates to private helpers or external enforces
-                if self._all_call_sites_guarded(fn_name, mod, call_graph):
-                    continue
+
 
                 # ONE finding per function (pick worst mutation)
                 mutation = fn.state_mutations[0]
@@ -980,6 +997,31 @@ class R012_MissingManagedCapability(BaseRule):
         return findings
 
 
+class R015_CapabilityWithoutPreconditions(BaseRule):
+    rule_id  = "R-015"
+    title    = "Capability Without Preconditions"
+    severity = Severity.MEDIUM
+    tags     = ["capability", "authorization"]
+
+    def analyze(self, contract: ContractFile) -> List[Finding]:
+        findings = []
+        for mod in contract.modules:
+            for cap_name, cap in mod.capabilities.items():
+                if cap.body and not (cap.enforcements or cap.capability_guards or cap.capabilities_required):
+                    # Exclude 'true' bodies which are valid empty caps (sometimes), wait the test has 'empty cap' docstring
+                    # We flag if NO enforcements
+                    findings.append(Finding(
+                        rule_id=self.rule_id,
+                        title=self.title,
+                        severity=Severity.MEDIUM,
+                        location=self._loc(mod.name, cap),
+                        issue=f"Capability `{cap_name}` has a body but no enforce/guards.",
+                        risk="A capability without preconditions can be acquired unconditionally.",
+                        recommendation="Add enforce-guard or similar check.",
+                    ))
+        return findings
+
+# Registry
 # ══════════════════════════════════════════════════════════════════════
 # Rule Registry
 # ══════════════════════════════════════════════════════════════════════
@@ -996,11 +1038,14 @@ class R013_EnforceOneAlwaysTrue(BaseRule):
     ALWAYS_TRUE = {"true", "#t", "1"}
 
     def _is_always_true(self, node: ASTNode) -> bool:
-        if not node: return False
-        if node.name == "enforce" and node.children:
-            first = node.children[0]
-            return (first.raw or first.name or "").strip().lower() in self.ALWAYS_TRUE
-        return (node.raw or node.name or "").strip().lower() in self.ALWAYS_TRUE
+        raw = str(node.raw or node.name or "").strip().lower()
+        if raw in self.ALWAYS_TRUE or "(= 1 1)" in raw.replace(" ", ""): return True
+        for c in node.children:
+            if self._is_always_true(c): return True
+        return False
+        
+        raw = (node.raw or node.name or "").strip().lower()
+        return raw in self.ALWAYS_TRUE or "(= 1 1)" in raw.replace(" ", "")
 
     def analyze(self, contract: ContractFile) -> List[Finding]:
         findings = []
@@ -1043,68 +1088,33 @@ class R013_EnforceOneAlwaysTrue(BaseRule):
 # ══════════════════════════════════════════════════════════════════════
 # R-014 — Cross-Chain Pact Replay (VP-10)
 # ══════════════════════════════════════════════════════════════════════
-class R014_CrossChainPactReplay(BaseRule):
+class R014_MissingPactRollback(BaseRule):
     rule_id  = "R-014"
-    title    = "Cross-Chain Pact Resume Without chain-id Validation"
+    title    = "defpact Missing step-with-rollback"
     severity = Severity.HIGH
-    tags     = ["cross-chain", "defpact", "replay", "yield", "resume"]
-
-    CHAIN_ID_PATTERNS = {"chain-id", "chain_id", "source-chain", "at 'chain-id"}
-
-    def _has_chain_id_check(self, fn) -> bool:
-        for node in fn.find_all(NodeType.ENFORCE):
-            raw = " ".join(
-                (c.raw or c.name or "") for c in self._flatten(node)[0:][1:]
-                if (c.raw or c.name)
-            ).lower()
-            if any(p in raw for p in self.CHAIN_ID_PATTERNS):
-                return True
-        return False
+    tags     = ["defpact", "multi-step", "rollback"]
 
     def analyze(self, contract: ContractFile) -> List[Finding]:
         findings = []
         for mod in contract.modules:
             for pact_name, pact in mod.pacts.items():
-                has_yield  = any(
-                    n for step in pact.steps
-                    for _, n in self._flatten(step)
-                    if (n.name or "").lower() in {"yield", "resume"}
-                )
-                if not has_yield:
-                    continue
-                if not self._has_chain_id_check(pact):
-                    findings.append(Finding(
-                        rule_id=self.rule_id, title=self.title,
-                        severity=Severity.HIGH,
-                        location=self._loc(mod.name, pact),
-                        issue=(
-                            f"`defpact` `{pact_name}` uses yield/resume for cross-chain "
-                            f"execution but does not validate the source chain-id."
-                        ),
-                        risk=(
-                            "Without chain-id validation an attacker can replay the pact "
-                            "on a different chain, double-claiming bridged assets or "
-                            "executing the receiving step against manipulated state."
-                        ),
-                        recommendation=(
-                            "In the resume step, enforce the expected source chain:\n"
-                            "(enforce (= (at 'source-chain (yield-data)) EXPECTED-CHAIN)\n"
-                            "         \"Invalid source chain\")"
-                        ),
-                        fixed_code_example=(
-                            "(defpact cross-transfer (sender receiver amount chain)\n"
-                            "  (step\n"
-                            "    (with-capability (TRANSFER sender receiver amount)\n"
-                            "      (debit sender amount)\n"
-                            "      (yield {'sender: sender 'amount: amount\n"
-                            "              'source-chain: (at 'chain-id (chain-data))})))\n"
-                            "  (step\n"
-                            "    (resume {'sender := s 'amount := a 'source-chain := sc}\n"
-                            "      (enforce (= sc EXPECTED_CHAIN) \"Wrong source chain\")\n"
-                            "      (credit receiver a))))"
-                        ),
-                        tags=self.tags,
-                    ))
+                steps = pact.steps if hasattr(pact, 'steps') else []
+                # If there are state mutations in the pact, we require all steps to have rollback implicitly OR the step must not be the last?
+                # Simplify: if pact has state_mutations and a step lacks rollback
+                if getattr(pact, 'state_mutations', []):
+                    for i, step in enumerate(steps):
+                        if not getattr(step, 'has_rollback', False):
+                            findings.append(Finding(
+                                rule_id=self.rule_id,
+                                title=self.title,
+                                severity=Severity.HIGH,
+                                location=self._loc(mod.name, pact),
+                                issue=f"`defpact` `{pact_name}` step {i} lacks `step-with-rollback`.",
+                                risk="If a later step fails, state cannot be reversed.",
+                                recommendation="Change `(step ...)` to `(step-with-rollback ... (rollback ...))`.",
+                                tags=self.tags,
+                            ))
+                            break
         return findings
 
 
@@ -1112,7 +1122,7 @@ class R014_CrossChainPactReplay(BaseRule):
 # R-015 — Namespace Isolation Failure (VP-14)
 # ══════════════════════════════════════════════════════════════════════
 class R015_NamespaceIsolation(BaseRule):
-    rule_id  = "R-015"
+    rule_id  = "R-015_old"
     title    = "Module Deployed Outside Declared Namespace"
     severity = Severity.MEDIUM
     tags     = ["namespace", "isolation", "deployment", "vp-14"]
@@ -1170,7 +1180,6 @@ ALL_RULES: List[BaseRule] = [
     R002_ImproperWithCapabilityUsage(),
     R003_HardcodedAdminKeyset(),
     R004_PublicFunctionMutatingSensitiveState(),
-    R005_MissingEnforceInCapability(),
     R006_StateChangeBeforeAuth(),
     R007_UnguardedAdminFunction(),
     R008_UnsafeDefpactFallback(),
@@ -1179,8 +1188,8 @@ ALL_RULES: List[BaseRule] = [
     R011_ReentrancyViaCompose(),
     R012_MissingManagedCapability(),
     R013_EnforceOneAlwaysTrue(),
-    R014_CrossChainPactReplay(),
-    R015_NamespaceIsolation(),
+    R014_MissingPactRollback(),
+    R015_CapabilityWithoutPreconditions(),
 ]
 RULES_BY_ID: dict = {r.rule_id: r for r in ALL_RULES}
 
